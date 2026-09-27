@@ -6,7 +6,7 @@ temporary directory and runs the suite from the clean checkout. If you
 re-run it and get a different result, the file was hand-edited.
 
 - **Date:** 2026-09-27
-- **Source commit:** `96ecdb0`
+- **Source commit:** `3e2077f`
 - **Shell:** zsh 5.9.2 (x86_64-pc-linux-gnu)
 - **awk:** GNU Awk 5.4.1, API 4.1, PMA Avon 8-g1, (GNU MPFR 4.2.2, GNU MP 6.3.0)
 
@@ -62,7 +62,7 @@ exit 0
 $ sh tests/lint-tests.sh
 
 ─────────────────────────────────────────
-passed: 23   failed: 0
+passed: 24   failed: 0
 exit 0
 
 $ bin/g-lint --repo-root . --deletion-test
