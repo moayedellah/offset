@@ -1,0 +1,27 @@
+name: lint
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  laws:
+    name: laws, tests, and the deletion test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: portable date core
+        run: sh tests/harness.sh
+
+      - name: every lint rule, both directions
+        run: sh tests/lint-tests.sh
+
+      - name: templates are schema-valid
+        run: bin/g-lint --templates templates
+
+      - name: the repository and both example vaults
+        run: bin/g-lint --repo-root . --deletion-test

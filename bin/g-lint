@@ -45,7 +45,7 @@ done
 # ── schema tables ────────────────────────────────────────────────────────────
 
 COMMON_KEYS="type id title created updated"
-REF_KEYS="unlocked_by source claim proof supersedes refuted_by"
+REF_KEYS="unlocked_by source claim practice proof supersedes refuted_by"
 DATE_KEYS="created updated due last_review verified recorded_at date from to"
 INT_KEYS="lapses difficulty"
 
@@ -71,6 +71,7 @@ schema_optional() {
         source)  echo "locator_hint summary" ;;
         error)   echo "claim" ;;
         insight) echo "related" ;;
+        proof)   echo "practice" ;;
         *)       echo "" ;;
     esac
 }
@@ -83,6 +84,7 @@ ref_allowed() {
     case "$1" in
         unlocked_by) echo "attempt error" ;;
         claim)       echo "claim" ;;
+        practice)    echo "practice" ;;
         proof)       echo "proof" ;;
         supersedes)  echo "*" ;;
         refuted_by)  echo "*" ;;
@@ -244,6 +246,11 @@ l9_schema() {
                 *) g_err "$_f" "$(g_fm_line_of "$_f" rung)" L9 \
                     "rung must be recall, derive or transfer, got '$_v'" ;;
             esac
+            # A proof has to be proof *of something*. Practices are provable too,
+            # which is why `practice` exists as an alternative target.
+            if [ -z "$(g_fm_getn "$_f" claim)" ] && [ -z "$(g_fm_getn "$_f" practice)" ]; then
+                g_err "$_f" 1 L9 "proof has neither a claim nor a practice to prove"
+            fi
             ;;
         attempt)
             _v=$(g_fm_getn "$_f" outcome)
@@ -415,6 +422,17 @@ l4_not_exposure() {
                 done < "$T_attempt"
             fi
         fi
+    fi
+
+    if [ "$_t" = "practice" ] && [ "$(g_fm_get "$_f" state)" = "proven" ]; then
+        _pid=$(g_fm_get "$_f" id)
+        _has=0
+        while IFS= read -r p; do
+            [ -n "$p" ] || continue
+            if [ "$(g_fm_get "$p" practice)" = "$_pid" ]; then _has=1; break; fi
+        done < "$T_proof"
+        [ "$_has" -eq 1 ] || g_err "$_f" "$(g_fm_line_of "$_f" state)" L4 \
+            "practice is proven but no proof note claims it; a practice is done when there is an artifact, not when a box is ticked (Law 4)"
     fi
 
     if [ "$_t" = "subject" ] && [ "$(g_fm_get "$_f" milestone_earned)" = "true" ]; then

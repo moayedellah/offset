@@ -132,14 +132,23 @@ hat, and `L3` fails it.
 
 ### 4. `proof`
 
-Evidence that the learner earned a claim.
+Evidence that the learner earned a claim **or** established a practice.
 
 | Field | Type | Req |
 |---|---|---|
-| `claim` | id of a `claim` | R |
+| `claim` | id of a `claim` \| `null` | R (**may be null**) |
 | `rung` | `recall` \| `derive` \| `transfer` | R |
 | `artifact` | string — where the learner's own attempt lives | R |
 | `verified` | `YYYY-MM-DD` \| `null` | R |
+| `practice` | id of a `practice` \| `null` | O |
+
+**At least one of `claim` or `practice` must be non-null.** `L9` rejects a proof
+that has neither, because a proof with no target is not a proof of anything.
+
+Both branches are live and both are needed. A claim's proof says *this assertion
+is earned*. A practice's proof says *this activity is real* — you went, and you
+wrote down what you noticed. That is why a habit checklist and a proven practice
+are not the same object.
 
 `artifact` is **yours, not the agent's**. A proof the model wrote is not a proof
 you produced, and a system that accepts one has no evidence layer at all.
