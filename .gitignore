@@ -1,0 +1,46 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Grimoire .gitignore
+#
+# ONE HARD RULE, enforced by lint rule L8: this file must never ignore a *.md
+# path. All durable state in this system is markdown. If a tool ever needs a
+# non-markdown file to hold state, that is a bug, not a config change.
+# `bin/g-lint` fails the build if any line here would ignore markdown.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Verbatim source material. Copyrighted books, papers, articles, PDFs.
+# A `source` note records provenance; the raw bytes stay here, on your disk.
+# This is the ONLY thing this repo refuses to track.
+raw/
+
+# A README placed inside a raw/ directory is ours, not the source's.
+!**/raw/README.md
+
+# Private scratch. Your own `self/` is deliberately NOT ignored: your own prior
+# reasoning is durable state and belongs in git. See docs/DESIGN-DECISIONS.md.
+
+# Editor / OS noise
+.DS_Store
+*.swp
+*~
+.idea/
+.vscode/
+
+# App state (Obsidian is supported as a *reader*, never as a dependency)
+.obsidian/
+.trash/
+workspace.json
+
+# Binary artefacts — never durable state
+*.pdf
+*.epub
+*.apkg
+*.zip
+*.tar.gz
+
+# Tooling noise
+node_modules/
+.venv/
+__pycache__/
+
+# Linter scratch space
+.omo-scratch/
