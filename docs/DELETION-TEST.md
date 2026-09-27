@@ -6,7 +6,7 @@ temporary directory and runs the suite from the clean checkout. If you
 re-run it and get a different result, the file was hand-edited.
 
 - **Date:** 2026-09-27
-- **Source commit:** `97a9c90`
+- **Source commit:** `93589d9`
 - **Shell:** zsh 5.9.2 (x86_64-pc-linux-gnu)
 - **awk:** GNU Awk 5.4.1, API 4.1, PMA Avon 8-g1, (GNU MPFR 4.2.2, GNU MP 6.3.0)
 

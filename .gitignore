@@ -44,3 +44,9 @@ __pycache__/
 
 # Linter scratch space
 .omo-scratch/
+
+# Harness session state that some agents write into the working tree. Not
+# project content and not durable state; a dirty tree in this repository is a
+# smell, so keep it out. (This is a directory pattern, not a *.md one — L8
+# still requires that nothing here can ever match a markdown file.)
+.omo/

@@ -165,6 +165,24 @@ base_vault
 printf '{"state": "cached"}\n' > "$WORK/claims/s/cache.json"
 expect_only L8 "non-markdown state inside the vault"
 
+printf '\nL8b gitignore must never ignore markdown\n'
+# Covers L8's *other* half, which was a silent no-op until probed: without
+# --no-index, git check-ignore calls every tracked file never-ignored. Looks
+# redundant next to the case above; it is not. Deleting it restores the bug.
+GI="$WORK/girepo"; mkdir -p "$GI/rules" "$GI/docs"
+git -C "$GI" init -q 2>/dev/null
+printf 'placeholder\n' > "$GI/rules/00-precedence.md"
+printf 'placeholder\n' > "$GI/docs/DESIGN-DECISIONS.md"
+printf 'rules/\n' > "$GI/.gitignore"
+_out=$("$G" --repo-root "$GI" 2>&1) || true
+mark L8
+_hit=$(hit_rules "$_out")
+if [ "$_hit" = "L8" ]; then
+    ok "a .gitignore that would ignore markdown trips L8 (L8)"
+else
+    bad "ignoring rules/ trips L8" "got [$(printf '%s' "$_hit" | tr '\n' ' ')]"
+fi
+
 printf '\nL9 schema\n'
 base_vault
 note claims/s/c1.md claim c1 'state: proven' 'status: compiled' \

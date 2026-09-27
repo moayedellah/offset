@@ -559,11 +559,12 @@ l8_gitignore() {
     [ -f "$_root/.gitignore" ] || return 0
     for probe in rules/00-precedence.md templates/claim.md docs/DESIGN-DECISIONS.md \
                  examples/book/subject.md examples/decision/subject.md AGENTS.md README.md; do
-        if [ -e "$_root/$probe" ]; then
-            if (cd "$_root" && git check-ignore -q -- "$probe" 2>/dev/null); then
-                g_err "$_root/.gitignore" 1 L8 \
-                    ".gitignore would ignore '$probe'; this file must never ignore markdown (The Deletion Test)"
-            fi
+        [ -e "$_root/$probe" ] || continue
+        # --no-index is required: without it git check-ignore reports tracked
+        # files as never-ignored, so this check silently passes forever.
+        if (cd "$_root" && git check-ignore --no-index -q -- "$probe" 2>/dev/null); then
+            g_err "$_root/.gitignore" 1 L8 \
+                ".gitignore would ignore '$probe'; this file must never ignore markdown (The Deletion Test)"
         fi
     done
 }
