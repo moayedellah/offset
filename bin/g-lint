@@ -9,7 +9,7 @@
 
 set -u
 
-G_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+G_DIR=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 . "$G_DIR/lib.sh"
 
 VAULT=""
@@ -75,9 +75,6 @@ schema_optional() {
         *)       echo "" ;;
     esac
 }
-
-# Fields the schema allows to be `null`. Everywhere else, `null` is a bad value.
-NULLABLE_KEYS="unlocked_by source locator kind due last_review verified supersedes claim refuted_by proof"
 
 # Reference fields and the note types their target must have ("*" = any).
 ref_allowed() {
@@ -518,7 +515,7 @@ BANNED_FIELDS="score streak points xp level rank"
 l11_no_scores() {
     _f="$1"
     for _b in $BANNED_FIELDS; do
-        if grep -qE "^$_b[[:space:]]*:" "$_f" 2>/dev/null; then
+        if grep -qE "^${_b}[[:space:]]*:" "$_f" 2>/dev/null; then
             g_err "$_f" 1 L11 \
                 "field '$_b' is not permitted anywhere in the vault; a scoreboard manufactures the feeling of progress without the progress"
         fi
@@ -585,7 +582,7 @@ l12_citations() {
     _root="$1"
     _ledger="$_root/CITATIONS.md"
     if [ ! -f "$_ledger" ]; then
-        g_err "$ledger" 1 L12 "CITATIONS.md is missing; citations cannot be graded"
+        g_err "$_ledger" 1 L12 "CITATIONS.md is missing; citations cannot be graded"
         return
     fi
     _known=$(scratch known); _banned=$(scratch banned); _refs=$(scratch refs)
@@ -631,6 +628,7 @@ lint_vault() {
             source)  l2_no_summary "$f" ;;
             error)   l5_ledger "$f" ;;
             subject) l4_not_exposure "$f" ;;
+            practice) l4_not_exposure "$f" ;;
         esac
         l6_due_honesty "$f"
         l7_links "$f"
