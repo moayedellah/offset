@@ -213,13 +213,13 @@ EOF
 printf 'placeholder\n' > "$RP/AGENTS.md"
 _out=$("$G" --repo-root "$RP" 2>&1) || true
 mark L10
-[ -z "$(hit_rules "$_out")" ] && ok "small AGENTS.md passes L10" \
+[ -z "$(hit_rules "$_out")" ] && ok "small AGENTS.md passes L10 (L10)" \
     || bad "small AGENTS.md" "$(hit_rules "$_out")"
 
 { printf 'x%.0s' $(seq 1 33000); printf '\n'; } > "$RP/AGENTS.md"
 _out=$("$G" --repo-root "$RP" 2>&1) || true
 _hit=$(hit_rules "$_out")
-if [ "$_hit" = "L10" ]; then ok "AGENTS.md over 32768 bytes trips L10"
+if [ "$_hit" = "L10" ]; then ok "AGENTS.md over 32768 bytes trips L10 (L10)"
 else bad "AGENTS.md over 32768 bytes" "got [$(printf '%s' "$_hit" | tr '\n' ' ')]"; fi
 
 printf '\nL12 citation honesty\n'
@@ -227,13 +227,13 @@ rm -f "$RP/AGENTS.md"; printf 'placeholder\n' > "$RP/AGENTS.md"
 printf 'A clean doc citing [cite: good_one].\n' > "$RP/docs/clean.md"
 _out=$("$G" --repo-root "$RP" 2>&1) || true
 mark L12
-[ -z "$(hit_rules "$_out")" ] && ok "a resolvable, permitted citation passes L12" \
+[ -z "$(hit_rules "$_out")" ] && ok "a resolvable, permitted citation passes L12 (L12)" \
     || bad "good citation" "$(hit_rules "$_out")"
 
 printf 'A doc citing [cite: missing_paper].\n' > "$RP/docs/unresolvable.md"
 _out=$("$G" --repo-root "$RP" 2>&1) || true
 _hit=$(hit_rules "$_out")
-if [ "$_hit" = "L12" ]; then ok "an unresolvable citation trips L12"
+if [ "$_hit" = "L12" ]; then ok "an unresolvable citation trips L12 (L12)"
 else bad "unresolvable citation" "got [$(printf '%s' "$_hit" | tr '\n' ' ')]"; fi
 
 rm -f "$RP/docs/unresolvable.md"
@@ -248,7 +248,7 @@ EOF
 printf 'A doc citing [cite: banned_one].\n' > "$RP/docs/banned.md"
 _out=$("$G" --repo-root "$RP" 2>&1) || true
 _hit=$(hit_rules "$_out")
-if [ "$_hit" = "L12" ]; then ok "a DO-NOT-CLAIM citation trips L12"
+if [ "$_hit" = "L12" ]; then ok "a DO-NOT-CLAIM citation trips L12 (L12)"
 else bad "DO-NOT-CLAIM citation" "got [$(printf '%s' "$_hit" | tr '\n' ' ')]"; fi
 
 # ── coverage self-check ─────────────────────────────────────────────────────
