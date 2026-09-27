@@ -7,7 +7,7 @@
 # trying to hold attention (rules/03-agent-contract.md §6).
 
 set -u
-G_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+G_DIR=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 . "$G_DIR/lib.sh"
 
 usage() {

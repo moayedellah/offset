@@ -8,9 +8,8 @@
 
 T_PASS=0
 T_FAIL=0
-T_CURRENT=""
 
-t_group() { T_CURRENT="$1"; printf '\n%s\n' "$1"; }
+t_group() { printf '\n%s\n' "$1"; }
 
 t_pass() { T_PASS=$((T_PASS + 1)); printf '  ok   %s\n' "$1"; }
 t_fail() {

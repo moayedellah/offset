@@ -6,7 +6,7 @@
 # template can never accidentally ship a note that fails the linter.
 
 set -u
-G_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+G_DIR=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 . "$G_DIR/lib.sh"
 
 usage() {

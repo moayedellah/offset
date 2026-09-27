@@ -10,7 +10,7 @@
 # FSRS, and it does not pretend to be).
 
 set -u
-G_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+G_DIR=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 . "$G_DIR/lib.sh"
 
 MAX_DIFF=10
