@@ -1,36 +1,65 @@
 # Release checklist
 
-This repository is **complete and passing**, and it is **not yet publishable as
-yours**. Four items stand between it and a public URL. Three need a fact only you
-have; one needs a review pass that has been explicitly waived.
+This repository is **complete, passing, and reviewed.** One item still needs a
+decision only you can make (commit attribution, item 3b); two are optional
+choices rather than debts. The review gate in item 1 is closed.
 
 Run this list top to bottom. It is short on purpose.
 
 ---
 
-## 1. Review gate — **OWED, NOT CLEARED**
+## 1. Review gate — **CLEARED**
 
-The high-accuracy review (native Momus critique + an independent Oracle review)
-has **not been run**. Subagent dispatch was broken for every model in the
-authoring session by a `ProviderModelNotFoundError`, and the user waived the gate
-on 2026-09-27 with the risk stated plainly.
+Both gates ran for real. Subagent dispatch was initially broken by a
+`ProviderModelNotFoundError`; the cause was the `oh-my-openagent` plugin
+hardcoding `anthropic/claude-haiku-4-5` and `anthropic/claude-opus-5`, which do not
+resolve on an OpenRouter account, because OpenRouter serves `claude-haiku-4.5`
+with a **dot** where the plugin writes a dash. Worked around with explicit model
+selection, and the gates were then run.
 
-The cause has since been **diagnosed and the fix applied** to the author's
-`~/.config/opencode/opencode.jsonc`: the `oh-my-openagent` plugin hardcodes
-`anthropic/claude-haiku-4-5` and `anthropic/claude-opus-5`, which do not resolve on
-an OpenRouter account — OpenRouter serves `claude-haiku-4.5`, a **dot** where the
-plugin writes a dash. Agent-model overrides are now in place using ids verified
-against `opencode models` output. **They take effect on the next session.**
+- **Momus** (plan critique): **APPROVE**, zero blocking defects.
+- **Oracle** (independent): **APPROVE with one CRITICAL defect.**
 
-- [ ] Restart opencode.
-- [ ] Run the Momus critique against the plan and an Oracle review of
-      `rules/01-five-laws.md` and `bin/g-lint`.
-- [ ] Record the verdicts in the plan's Review Debt table.
+### The critical defect, and what chasing it turned up
 
-This repository is unusually well placed to notice that it shipped on an
-unverified plan: it contains a rule that fails the build when a document cites
-something unverifiable. Please close this before publishing, and say plainly in
-the first commit or release note that the review came after the first draft.
+`l4_not_exposure()` had a correct `practice` branch that nothing ever called:
+`lint_vault()`'s dispatch `case` routed only `claim`, `source`, `error` and
+`subject`. **A practice marked `proven` with no proof artifact whatsoever linted
+clean.** Law 4 was unenforced for practices, in a repository whose entire claim
+is that unenforced laws are just requests.
+
+Fixed in `a74b0fa`, and verified in both directions by hand as well as by test.
+
+Verifying the fix surfaced three more defects, all also fixed:
+
+1. **`g_err "$ledger"`** in `l12_citations()` referenced an unassigned variable.
+   Under `set -u` this **aborted the linter mid-run**, so the "CITATIONS.md is
+   missing" branch crashed instead of reporting. The `L8b` test had been green
+   **for a false reason**: the crash killed the process after L8 had printed and
+   before L12 could fire.
+2. **The fixture was masking the original bug.** `base_vault` carried a `proven`
+   practice with `proof: null`, a real Law 4 violation that passed only because
+   the rule was dead. `66ff28a` gave it a back-referencing proof and added the
+   `L4d` isolation case, so the baseline is now clean for the right reason.
+3. **`grep -qE "^$_b[[:space:]]*:"`** needed `${_b}` to parse as intended.
+
+Also in `a74b0fa`: the dead `NULLABLE_KEYS` variable was removed. Its comment
+claimed L9 rejects `null` outside a nullable set, and **L9 does not do that**; it
+skips `null` for every key unconditionally. The dead variable is gone and the gap
+is documented, not implemented. Implementing it is a schema decision, not a lint
+fix, and it is still open.
+
+### Known gap, deliberately not fixed
+
+`L9` permits `null` in any field rather than only in a declared nullable set, so
+`due: null` on a `proven` claim would pass. Closing it changes the schema
+contract and needs its own decision. It is recorded here rather than quietly
+patched.
+
+The review came **after** the first draft, and that is worth saying plainly in the
+first release note. This repository is unusually well placed to notice: it ships a
+rule that fails the build on an unverifiable citation, and it shipped itself
+unreviewed for a while.
 
 ## 2. `LICENSE` — copyright holder — **DONE**
 
@@ -40,9 +69,9 @@ authenticated GitHub account rather than asked for.
 ## 3. Clone URL — **DONE, with one assumption**
 
 `README.md` and `docs/HOW-IT-WORKS.md` now read
-`git clone https://github.com/moayedellah/grimoire.git ~/grimoire`.
+`git clone https://github.com/moayedellah/offset.git ~/offset`.
 
-**Assumption:** the repository will be `moayedellah/grimoire` — your account,
+**Assumption:** the repository will be `moayedellah/offset` — your account,
 the name we chose. If you push it to an org, or rename it, that is a two-line
 find-and-replace.
 
@@ -92,7 +121,7 @@ The decision example ships **deliberately empty of your life**, with
 ## What is already done, so you can skip it
 
 - [x] 12 lint rules, each naming the law it enforces
-- [x] 22 lint tests with full rule isolation and a coverage self-check
+- [x] 24 lint tests with full rule isolation and a coverage self-check
 - [x] 35 assertions pinning a portable date core, independently validated
       against GNU `date` across 12 dates from 1582 to 2400
 - [x] `CITATIONS.md` with a `Verification` field distinguishing a full-text read
