@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# Grimoire .gitignore
+# Offset .gitignore
 #
 # ONE HARD RULE, enforced by lint rule L8: this file must never ignore a *.md
 # path. All durable state in this system is markdown. If a tool ever needs a

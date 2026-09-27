@@ -3,8 +3,8 @@
 ## Install and point an agent at the root
 
 ```sh
-git clone https://github.com/moayedellah/grimoire.git ~/grimoire
-cd ~/grimoire
+git clone https://github.com/moayedellah/offset.git ~/offset
+cd ~/offset
 ```
 
 `AGENTS.md` is the canonical instruction file. `CLAUDE.md`, `GEMINI.md` and

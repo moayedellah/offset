@@ -1,5 +1,5 @@
 #!/bin/sh
-# bin/lib.sh — shared internals for the Grimoire tools.
+# bin/lib.sh — shared internals for the Offset tools.
 #
 # POSIX sh only. No bashisms, no arrays, no `local` (POSIX has no `local`;
 # we use prefixed globals and accept it). No external dependencies beyond
