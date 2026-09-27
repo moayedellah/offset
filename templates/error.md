@@ -1,10 +1,10 @@
 ---
 type: error
-id: YYYY-MM-DD-slug
+id: 2026-01-01-slug
 title: TODO — what was wrong, and what killed it
-created: YYYY-MM-DD
-updated: YYYY-MM-DD
-recorded_at: YYYY-MM-DD
+created: 2026-01-01
+updated: 2026-01-01
+recorded_at: 2026-01-01
 resolution: open
 supersedes: null
 claim: null

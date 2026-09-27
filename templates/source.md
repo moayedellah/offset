@@ -1,9 +1,9 @@
 ---
 type: source
-id: YYYY-MM-DD-author-short-title
+id: 2026-01-01-author-short-title
 title: TODO — Author, *Title* (Year)
-created: YYYY-MM-DD
-updated: YYYY-MM-DD
+created: 2026-01-01
+updated: 2026-01-01
 locator_hint: TODO — chapter, section, or page where the relevant material lives
 ---
 

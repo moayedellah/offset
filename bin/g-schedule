@@ -1,0 +1,183 @@
+#!/bin/sh
+# bin/g-schedule — advance or retreat a note along the interval ladder.
+#
+# Bookkeeping only. This script cannot mark anything proven, cannot invent a
+# proof artifact, and cannot grant a subject milestone. A clock cannot produce
+# evidence, and this one refuses to pretend otherwise.
+#
+# The ladder: 1 3 7 21 90 days. A pass advances one step, a lapse retreats one.
+# See rules/05-scheduler.md, including what this does not claim (it is not
+# FSRS, and it does not pretend to be).
+
+set -u
+G_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+. "$G_DIR/lib.sh"
+
+MAX_DIFF=10
+TMPH=""
+
+usage() {
+    cat <<'USAGE'
+g-schedule — move a note along the interval ladder
+
+  g-schedule <vault> <note-id-or-path> [--pass|--lapse]
+             [--milestone]
+
+  --pass       advance one step (default when state is proven)
+  --lapse      retreat one step; lapses +1, difficulty +1
+  --milestone  set a subject's milestone_earned (requires a transfer proof)
+
+Idempotent within a day: if last_review is already today, nothing is written.
+USAGE
+}
+
+cleanup() { [ -n "$TMPH" ] && rm -f "$TMPH"; }
+trap cleanup EXIT INT TERM
+
+[ $# -ge 2 ] || { usage >&2; exit 2; }
+VAULT="$1"; NOTE="$2"; shift 2
+MODE=""
+MILESTONE=0
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --pass)       MODE=pass; shift ;;
+        --lapse)      MODE=lapse; shift ;;
+        --milestone)  MILESTONE=1; shift ;;
+        -h|--help)    usage; exit 0 ;;
+        *) printf 'g-schedule: unknown argument %s\n' "$1" >&2; exit 2 ;;
+    esac
+done
+
+[ -d "$VAULT" ] || { printf 'g-schedule: no such vault: %s\n' "$VAULT" >&2; exit 1; }
+TMPH=$(mktemp "${TMPDIR:-/tmp}/g-schedule.XXXXXX") || exit 1
+
+find "$VAULT" -name '*.md' -not -path '*/.git/*' -not -path '*/raw/*' 2>/dev/null \
+    | LC_ALL=C sort > "$TMPH"
+
+# id -> path
+path_of_id() {
+    while IFS= read -r f; do
+        g_has_frontmatter "$f" || continue
+        if [ "$(g_fm_get "$f" id)" = "$1" ]; then printf '%s' "$f"; return 0; fi
+    done < "$TMPH"
+    return 1
+}
+
+label_days() {
+    case "$1" in
+        0) echo 1 ;; 1) echo 3 ;; 2) echo 7 ;; 3) echo 21 ;; *) echo 90 ;;
+    esac
+}
+
+label_name() {
+    case "$1" in
+        0) echo 1d ;; 1) echo 3d ;; 2) echo 1w ;; 3) echo 3w ;; *) echo 3mo ;;
+    esac
+}
+
+index_of_label() {
+    case "$1" in
+        1d)  echo 0 ;; 3d) echo 1 ;; 1w|7d) echo 2 ;; 3w|21d) echo 3 ;; 3mo|90d) echo 4 ;;
+        *) echo 0 ;;
+    esac
+}
+
+# Resolve the target note: direct path, else by id.
+FILE="$NOTE"
+if [ ! -f "$FILE" ]; then
+    FILE=$(path_of_id "$NOTE") || { printf 'g-schedule: no note with id %s\n' "$NOTE" >&2; exit 1; }
+fi
+
+TYPE=$(g_fm_get "$FILE" type)
+TODAY=$(g_today_iso)
+
+# ── --milestone ──────────────────────────────────────────────────────────────
+
+if [ "$MILESTONE" -eq 1 ]; then
+    [ "$TYPE" = "subject" ] || {
+        printf 'g-schedule: --milestone applies to a subject, not a %s\n' "$TYPE" >&2; exit 1; }
+    DIR=$(dirname "$FILE")
+    got=0
+    while IFS= read -r p; do
+        g_has_frontmatter "$p" || continue
+        [ "$(g_fm_get "$p" type)" = "proof" ] || continue
+        [ "$(g_fm_get "$p" rung)" = "transfer" ] || continue
+        cpath=$(path_of_id "$(g_fm_get "$p" claim)") || continue
+        case "$cpath" in
+            "$DIR"/*) got=1; break ;;
+        esac
+    done < "$TMPH"
+    if [ "$got" -ne 1 ]; then
+        printf 'g-schedule: refusing to grant the milestone — no transfer-rung proof exists in this subject.\n' >&2
+        printf '            Only transfer earns the field; recall and derive earn the claim (Law 4).\n' >&2
+        exit 1
+    fi
+    g_fm_set "$FILE" milestone_earned true
+    g_fm_set "$FILE" updated "$TODAY"
+    printf '%s: milestone_earned = true\n' "$FILE"
+    exit 0
+fi
+
+# ── scheduling ───────────────────────────────────────────────────────────────
+
+case "$TYPE" in
+    claim)
+        STATUS=$(g_fm_get "$FILE" status)
+        if [ "$STATUS" != "compiled" ]; then
+            printf 'g-schedule: refusing to schedule a %s claim.\n' "$STATUS" >&2
+            printf '            A draft is not an answer yet, so it has nothing to forget (Law 4).\n' >&2
+            exit 1
+        fi
+        ;;
+    practice) ;;
+    *) printf 'g-schedule: %s notes are not scheduled; only claims and practices are.\n' "$TYPE" >&2
+       exit 1 ;;
+esac
+
+STATE=$(g_fm_get "$FILE" state)
+case "$STATE" in
+    proven|decaying|re-attempting) ;;
+    *)
+        printf 'g-schedule: refusing to schedule state "%s".\n' "$STATE" >&2
+        printf '            Only proven or decaying notes carry a due date (rules/05-scheduler.md).\n' >&2
+        exit 1 ;;
+esac
+
+[ -n "$MODE" ] || { if [ "$STATE" = "proven" ]; then MODE=pass; else MODE=lapse; fi; }
+
+LAST=$(g_fm_getn "$FILE" last_review)
+if [ "$LAST" = "$TODAY" ]; then
+    printf '%s: last_review is already %s; nothing to do.\n' "$FILE" "$TODAY"
+    exit 0
+fi
+
+IDX=$(index_of_label "$(g_fm_get "$FILE" stability)")
+LAPSES=$(g_fm_get "$FILE" lapses); LAPSES=${LAPSES:-0}
+DIFF=$(g_fm_get "$FILE" difficulty);  DIFF=${DIFF:-5}
+
+if [ "$MODE" = "pass" ]; then
+    NEXT=$((IDX + 1)); [ "$NEXT" -gt 4 ] && NEXT=4
+else
+    NEXT=$((IDX - 1)); [ "$NEXT" -lt 0 ] && NEXT=0
+    LAPSES=$((LAPSES + 1))
+    DIFF=$((DIFF + 1)); [ "$DIFF" -gt "$MAX_DIFF" ] && DIFF=$MAX_DIFF
+fi
+
+DAYS=$(label_days "$NEXT")
+DUE=$(g_iso_plus_days "$TODAY" "$DAYS")
+[ -n "$DUE" ] || { printf 'g-schedule: could not compute a due date\n' >&2; exit 1; }
+
+g_fm_set "$FILE" due "$DUE"
+g_fm_set "$FILE" last_review "$TODAY"
+g_fm_set "$FILE" stability "$(label_name "$NEXT")"
+g_fm_set "$FILE" lapses "$LAPSES"
+[ "$TYPE" = "claim" ] && g_fm_set "$FILE" difficulty "$DIFF"
+g_fm_set "$FILE" updated "$TODAY"
+
+if [ "$MODE" = "pass" ]; then
+    printf '%s: pass -> step %s (%s days), due %s\n' "$FILE" "$NEXT" "$DAYS" "$DUE"
+else
+    printf '%s: lapse -> step %s (%s days), due %s, lapses %s, difficulty %s\n' \
+        "$FILE" "$NEXT" "$DAYS" "$DUE" "$LAPSES" "$DIFF"
+fi
+exit 0

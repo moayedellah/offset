@@ -105,8 +105,7 @@ g_has_frontmatter() {
 }
 
 # g_fm_get never fails; g_fm_get_strict exits 0=scalar 1=absent 3=list.
-g_fm_get_strict() {
-    _g_f="$1"; _g_k="$2"
+g_fm_get_strict() {    _g_f="$1"; _g_k="$2"
     g_has_frontmatter "$_g_f" || return 2
     awk -v key="$_g_k" '
         NR == 1 { next }
@@ -138,6 +137,15 @@ g_fm_has() {
         index($0, key ":") == 1 { found = 1; exit }
         END { exit (found ? 0 : 1) }
     ' "$_g_f"
+}
+
+# g_fm_get, but the literal `null` reads as absent — flat YAML has no other
+# null (an empty value parses as a list key). Use this for every
+# "is this filled in?" test; using g_fm_get instead silently disables Law 1.
+g_fm_getn() {
+    _g_v=$(g_fm_get "$@")
+    if [ "$_g_v" = "null" ]; then _g_v=""; fi
+    printf '%s' "$_g_v"
 }
 
 # Top-level keys, one per line, in file order.

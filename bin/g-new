@@ -1,0 +1,152 @@
+#!/bin/sh
+# bin/g-new — scaffold a note from the schema, or a whole subject.
+#
+# The CLI owns the machine fields; the template owns the prose. That split
+# means a schema change never has to hunt through ten markdown files, and a
+# template can never accidentally ship a note that fails the linter.
+
+set -u
+G_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+. "$G_DIR/lib.sh"
+
+usage() {
+    cat <<'USAGE'
+g-new — scaffold a note or a subject
+
+  g-new <vault> <type> <slug> [options]
+
+  --title T      human title (defaults to the slug)
+  --subject S    subject name; required for the note types that nest
+  --claim ID     the claim this attempt/proof/insight belongs to
+  --rung R       recall | derive | transfer (proof only, default recall)
+  --force        overwrite an existing note
+  --help
+
+Types: subject source claim proof attempt error prediction insight practice audit
+USAGE
+}
+
+[ $# -ge 3 ] || { usage >&2; exit 2; }
+VAULT="$1"; TYPE="$2"; SLUG="$3"; shift 3
+TITLE=""; SUBJECT=""; CLAIM=""; RUNG="recall"; FORCE=0
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --title)   TITLE="$2"; shift 2 ;;
+        --subject) SUBJECT="$2"; shift 2 ;;
+        --claim)   CLAIM="$2"; shift 2 ;;
+        --rung)    RUNG="$2"; shift 2 ;;
+        --force)   FORCE=1; shift ;;
+        -h|--help) usage; exit 0 ;;
+        *) printf 'g-new: unknown argument %s\n' "$1" >&2; exit 2 ;;
+    esac
+done
+
+[ -d "$VAULT" ] || { printf 'g-new: no such vault: %s\n' "$VAULT" >&2; exit 1; }
+TEMPLATE="$G_DIR/../templates/$TYPE.md"
+[ -f "$TEMPLATE" ] || { printf 'g-new: no template for type %s\n' "$TYPE" >&2; exit 2; }
+[ -n "$TITLE" ] || TITLE="$SLUG"
+
+case "$RUNG" in recall|derive|transfer) ;; *) printf 'g-new: --rung must be recall, derive or transfer\n' >&2; exit 2 ;; esac
+
+# ── path ─────────────────────────────────────────────────────────────────────
+
+case "$TYPE" in
+    subject)
+        PATH_OUT="$VAULT/subject.md"
+        ;;
+    audit)
+        PATH_OUT="$VAULT/audits/$SLUG.md"
+        ;;
+    practice)
+        PATH_OUT="$VAULT/practices/$SLUG.md"
+        ;;
+    source|claim|proof|attempt|error|prediction|insight)
+        if [ -z "$SUBJECT" ]; then
+            printf 'g-new: %s notes live under <vault>/<dir>/<subject>/, so --subject is required.\n' "$TYPE" >&2
+            exit 2
+        fi
+        case "$TYPE" in
+            source) D=sources ;; claim) D=claims ;; proof) D=proofs ;;
+            attempt) D=attempts ;; error) D=errors ;;
+            prediction) D=predictions ;; insight) D=insights ;;
+        esac
+        PATH_OUT="$VAULT/$D/$SUBJECT/$SLUG.md"
+        ;;
+    *)
+        printf 'g-new: unknown type %s\n' "$TYPE" >&2
+        exit 2 ;;
+esac
+
+if [ -e "$PATH_OUT" ] && [ "$FORCE" -ne 1 ]; then
+    printf 'g-new: %s already exists. Pass --force to overwrite.\n' "$PATH_OUT" >&2
+    exit 1
+fi
+
+mkdir -p "$(dirname "$PATH_OUT")" || exit 1
+TODAY=$(g_today_iso)
+ID="$TODAY-$SLUG"
+
+# ── frontmatter ──────────────────────────────────────────────────────────────
+
+emit() { printf '%s: %s\n' "$1" "$2"; }
+
+{
+    printf -- '---\n'
+    emit type "$TYPE"
+    emit id "$ID"
+    emit title "$TITLE"
+    emit created "$TODAY"
+    emit updated "$TODAY"
+    case "$TYPE" in
+        subject)    emit state unseen; emit milestone_earned false ;;
+        source)     emit locator_hint TODO ;;
+        claim)      emit state unseen; emit status draft
+                    emit unlocked_by null; emit source null
+                    emit locator null; emit kind null
+                    emit due null; emit last_review null
+                    emit lapses 0; emit stability 1d; emit difficulty 5 ;;
+        proof)      emit claim "${CLAIM:-TODO}"; emit rung "$RUNG"
+                    emit artifact TODO; emit verified null ;;
+        attempt)    emit claim "${CLAIM:-TODO}"; emit outcome null; emit artifact TODO ;;
+        error)      emit recorded_at "$TODAY"; emit resolution open; emit supersedes null ;;
+        prediction) emit statement TODO; emit date "$TODAY"
+                    emit outcome open; emit refuted_by null ;;
+        insight)    emit claim "${CLAIM:-null}" ;;
+        practice)   emit cadence TODO; emit state unseen
+                    emit due null; emit last_review null
+                    emit lapses 0; emit stability 1d; emit difficulty 5
+                    emit proof null ;;
+        audit)      emit period TODO; emit from "$TODAY"; emit to "$TODAY" ;;
+    esac
+    printf -- '---\n'
+    g_body "$TEMPLATE"
+} > "$PATH_OUT" || { printf 'g-new: failed to write %s\n' "$PATH_OUT" >&2; exit 1; }
+
+# A new subject gets its whole scaffold, because a subject without its
+# directory tree is a subject you cannot use.
+if [ "$TYPE" = "subject" ]; then
+    for d in sources claims attempts proofs predictions errors insights; do
+        mkdir -p "$VAULT/$d/$SLUG"
+    done
+    mkdir -p "$VAULT/practices" "$VAULT/audits" "$VAULT/raw" "$VAULT/self"
+    cat > "$VAULT/TODO.md" <<TODO
+# TODO — five facts only you can supply
+
+This vault was scaffolded automatically. These are the parts a machine must
+not invent, because inventing them is the one lie this system cannot survive.
+
+1. **Your authoritative core-ideas index for \`$SLUG\`.** A practitioner of the
+   field would name twenty to fifty concepts. If you do not have such a list,
+   say so in \`subject.md\` and leave the model's list labelled *unsourced*.
+2. **A real failed attempt.** An \`attempt\` note with \`outcome: failed\`. It is
+   the only key to the Closed Book, and it has to be yours.
+3. **A real prediction**, dated, that reality can refute.
+4. **A real refutation** — the moment a prediction came back wrong.
+5. **A real retraction** — a proven claim that turned out to be wrong.
+
+Until these exist, the vault lints clean and proves nothing.
+TODO
+fi
+
+printf '%s\n' "$PATH_OUT"
+exit 0

@@ -1,13 +1,13 @@
 ---
 type: proof
-id: YYYY-MM-DD-slug-rung
+id: 2026-01-01-slug-rung
 title: TODO — claim title, at recall
-created: YYYY-MM-DD
-updated: YYYY-MM-DD
+created: 2026-01-01
+updated: 2026-01-01
 claim: TODO — the id of the claim this proves
 rung: recall
 artifact: TODO — where your own attempt lives
-verified: YYYY-MM-DD
+verified: 2026-01-01
 ---
 
 # TODO — proof of TODO at recall

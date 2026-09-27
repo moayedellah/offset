@@ -1,9 +1,9 @@
 ---
 type: insight
-id: YYYY-MM-DD-slug
+id: 2026-01-01-slug
 title: TODO — what you noticed
-created: YYYY-MM-DD
-updated: YYYY-MM-DD
+created: 2026-01-01
+updated: 2026-01-01
 claim: null
 related: []
 ---

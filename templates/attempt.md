@@ -1,9 +1,9 @@
 ---
 type: attempt
-id: YYYY-MM-DD-slug
+id: 2026-01-01-slug
 title: TODO — claim title, first attempt
-created: YYYY-MM-DD
-updated: YYYY-MM-DD
+created: 2026-01-01
+updated: 2026-01-01
 claim: TODO — the id of the claim attempted
 outcome: null
 artifact: TODO — your attempt, in your own words

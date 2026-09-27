@@ -1,9 +1,9 @@
 ---
 type: subject
-id: YYYY-MM-DD-slug
+id: 2026-01-01-slug
 title: TODO — subject title
-created: YYYY-MM-DD
-updated: YYYY-MM-DD
+created: 2026-01-01
+updated: 2026-01-01
 state: unseen
 milestone_earned: false
 core_ideas:

@@ -1,0 +1,695 @@
+#!/bin/sh
+# bin/g-lint — mechanical enforcement of the Five Laws, the Two Disciplines,
+# and the durability promise.
+#
+# An unenforced law is a preference. Every finding names the rule that fired and
+# the law it comes from, so a reader never has to guess why.
+#
+# POSIX sh + awk. No dependencies. Never executes note content.
+
+set -u
+
+G_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+. "$G_DIR/lib.sh"
+
+VAULT=""
+REPO_ROOT=""
+TEMPLATES=""
+DELETION=0
+
+usage() {
+    cat <<'USAGE'
+g-lint — enforce the Five Laws and the durability promise
+
+  g-lint --vault <dir>        lint one vault's notes
+  g-lint --repo-root <dir>    lint the whole repository (durability, portability,
+                              citations, plus every example vault)
+  g-lint --templates <dir>    schema-check templates only (L9, L11) and
+                              citation-check the repository
+  g-lint --deletion-test      copy the vault, keep only markdown, re-lint, and
+                              fail if it is no longer clean
+USAGE
+}
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --vault)         VAULT="$2"; shift 2 ;;
+        --repo-root)     REPO_ROOT="$2"; shift 2 ;;
+        --templates)     TEMPLATES="$2"; shift 2 ;;
+        --deletion-test) DELETION=1; shift ;;
+        -h|--help)       usage; exit 0 ;;
+        *) printf 'g-lint: unknown argument %s\n' "$1" >&2; usage >&2; exit 2 ;;
+    esac
+done
+
+# ── schema tables ────────────────────────────────────────────────────────────
+
+COMMON_KEYS="type id title created updated"
+REF_KEYS="unlocked_by source claim proof supersedes refuted_by"
+DATE_KEYS="created updated due last_review verified recorded_at date from to"
+INT_KEYS="lapses difficulty"
+
+schema_required() {
+    case "$1" in
+        subject)    echo "state milestone_earned" ;;
+        source)     echo "" ;;
+        claim)      echo "state status unlocked_by source locator kind due last_review lapses stability difficulty" ;;
+        proof)      echo "claim rung artifact verified" ;;
+        attempt)    echo "claim outcome artifact" ;;
+        error)      echo "recorded_at resolution supersedes" ;;
+        prediction) echo "statement date outcome refuted_by" ;;
+        insight)    echo "claim" ;;
+        practice)   echo "cadence state due last_review lapses stability difficulty proof" ;;
+        audit)      echo "period from to" ;;
+        *)          return 1 ;;
+    esac
+}
+
+schema_optional() {
+    case "$1" in
+        subject) echo "core_ideas" ;;
+        source)  echo "locator_hint summary" ;;
+        error)   echo "claim" ;;
+        insight) echo "related" ;;
+        *)       echo "" ;;
+    esac
+}
+
+# Fields the schema allows to be `null`. Everywhere else, `null` is a bad value.
+NULLABLE_KEYS="unlocked_by source locator kind due last_review verified supersedes claim refuted_by proof"
+
+# Reference fields and the note types their target must have ("*" = any).
+ref_allowed() {
+    case "$1" in
+        unlocked_by) echo "attempt error" ;;
+        claim)       echo "claim" ;;
+        proof)       echo "proof" ;;
+        supersedes)  echo "*" ;;
+        refuted_by)  echo "*" ;;
+        *)           return 1 ;;
+    esac
+}
+
+# ── state ────────────────────────────────────────────────────────────────────
+
+G_ERRORS=0
+SCRATCH=""
+IDPATH=""
+ALLNOTES=""
+T_subject=""; T_source=""; T_claim=""; T_proof=""; T_attempt=""
+T_error=""; T_prediction=""; T_insight=""; T_practice=""; T_audit=""
+
+g_err() {
+    printf '%s:%s: %s %s\n' "$1" "$2" "$3" "$4"
+    G_ERRORS=$((G_ERRORS + 1))
+}
+
+g_die() { printf 'g-lint: %s\n' "$1" >&2; exit 1; }
+
+scratch() { printf '%s/%s' "$SCRATCH" "$1"; }
+
+cleanup() { [ -n "$SCRATCH" ] && rm -rf "$SCRATCH"; }
+trap cleanup EXIT INT TERM
+
+# ── index ────────────────────────────────────────────────────────────────────
+#
+# Per-type path lists are files, not variables. The lookup loops read them with
+# `done < file` so they run in the *current* shell: a pipeline or heredoc would
+# put them in a subshell, where `break` and G_ERRORS both vanish silently.
+
+build_index() {
+    _root="$1"
+    ALLNOTES=$(scratch notes)
+    IDPATH=$(scratch index)
+    T_subject=$(scratch t_subject);   T_source=$(scratch t_source)
+    T_claim=$(scratch t_claim);       T_proof=$(scratch t_proof)
+    T_attempt=$(scratch t_attempt);   T_error=$(scratch t_error)
+    T_prediction=$(scratch t_prediction); T_insight=$(scratch t_insight)
+    T_practice=$(scratch t_practice); T_audit=$(scratch t_audit)
+    : > "$ALLNOTES"; : > "$IDPATH"
+    for _t in "$T_subject" "$T_source" "$T_claim" "$T_proof" "$T_attempt" \
+              "$T_error" "$T_prediction" "$T_insight" "$T_practice" "$T_audit"; do
+        : > "$_t"
+    done
+
+    find "$_root" -name '*.md' -not -path '*/.git/*' -not -path '*/raw/*' \
+        2>/dev/null | LC_ALL=C sort > "$ALLNOTES"
+
+    while IFS= read -r f; do
+        [ -n "$f" ] || continue
+        g_has_frontmatter "$f" || continue
+        _t=$(g_fm_get "$f" type)
+        _id=$(g_fm_get "$f" id)
+        [ -n "$_id" ] || continue
+        printf '%s\t%s\n' "$_id" "$f" >> "$IDPATH"
+        case "$_t" in
+            subject)    printf '%s\n' "$f" >> "$T_subject" ;;
+            source)     printf '%s\n' "$f" >> "$T_source" ;;
+            claim)      printf '%s\n' "$f" >> "$T_claim" ;;
+            proof)      printf '%s\n' "$f" >> "$T_proof" ;;
+            attempt)    printf '%s\n' "$f" >> "$T_attempt" ;;
+            error)      printf '%s\n' "$f" >> "$T_error" ;;
+            prediction) printf '%s\n' "$f" >> "$T_prediction" ;;
+            insight)    printf '%s\n' "$f" >> "$T_insight" ;;
+            practice)   printf '%s\n' "$f" >> "$T_practice" ;;
+            audit)      printf '%s\n' "$f" >> "$T_audit" ;;
+        esac
+    done < "$ALLNOTES"
+}
+
+path_of() {
+    [ -n "$IDPATH" ] || return 1
+    awk -F'\t' -v id="$1" '$1 == id { print $2; found = 1; exit } END { exit (found ? 0 : 1) }' "$IDPATH"
+}
+
+ref_resolves() {
+    _p=$(path_of "$1") || return 1
+    [ -n "$_p" ] || return 1
+    [ "$2" = "*" ] && return 0
+    _t=$(g_fm_get "$_p" type)
+    for _a in $2; do
+        [ "$_a" = "$_t" ] && return 0
+    done
+    return 1
+}
+
+# Whichever proof is later by `verified`.
+_better_proof() {
+    _a=$(g_fm_get "$1" verified); _b=$(g_fm_get "$2" verified)
+    g_iso_valid "$_a" || { printf '%s' "$2"; return; }
+    g_iso_valid "$_b" || { printf '%s' "$1"; return; }
+    if [ "$(g_days_diff "$_a" "$_b")" -ge 0 ]; then printf '%s' "$2"; else printf '%s' "$1"; fi
+}
+
+# ── L9: schema ───────────────────────────────────────────────────────────────
+
+l9_schema() {
+    _f="$1"
+    _t=$(g_fm_get "$_f" type)
+    if [ -z "$_t" ]; then
+        g_err "$_f" 1 L9 "no 'type' field"
+        return
+    fi
+    _req=$(schema_required "$_t") || { g_err "$_f" "$(g_fm_line_of "$_f" type)" L9 "unknown type '$_t'"; return; }
+    _opt=$(schema_optional "$_t")
+
+    for _k in $(g_fm_keys "$_f"); do
+        _ok=0
+        for _a in $COMMON_KEYS $_req $_opt; do
+            [ "$_a" = "$_k" ] && _ok=1 && break
+        done
+        if [ "$_ok" -eq 0 ]; then
+            # The six banned names are L11's business, not a shape error. Deferring
+            # them keeps each rule independently testable.
+            _defer=0
+            for _b in $BANNED_FIELDS; do [ "$_b" = "$_k" ] && _defer=1 && break; done
+            [ "$_defer" -eq 1 ] || g_err "$_f" "$(g_fm_line_of "$_f" "$_k")" L9 \
+                "unknown field '$_k' for type $_t"
+        fi
+    done
+
+    for _k in $COMMON_KEYS $_req; do
+        g_fm_has "$_f" "$_k" || g_err "$_f" 1 L9 "missing required field '$_k' for type $_t"
+    done
+
+    _v=$(g_fm_get "$_f" state)
+    if [ -n "$_v" ]; then
+        case "$_v" in
+            unseen|attempted|failed|proven|decaying|re-attempting|retracted) ;;
+            *) g_err "$_f" "$(g_fm_line_of "$_f" state)" L9 "state '$_v' is not a legal state" ;;
+        esac
+    fi
+
+    case "$_t" in
+        claim)
+            _v=$(g_fm_get "$_f" status)
+            case "$_v" in
+                draft|compiled) ;;
+                *) g_err "$_f" "$(g_fm_line_of "$_f" status)" L9 \
+                    "claim status must be draft or compiled, got '$_v'" ;;
+            esac
+            _v=$(g_fm_getn "$_f" kind)
+            if [ -n "$_v" ]; then
+                case "$_v" in
+                    source|inference) ;;
+                    *) g_err "$_f" "$(g_fm_line_of "$_f" kind)" L9 \
+                        "kind must be source or inference, got '$_v'" ;;
+                esac
+            fi
+            ;;
+        proof)
+            _v=$(g_fm_get "$_f" rung)
+            case "$_v" in
+                recall|derive|transfer) ;;
+                *) g_err "$_f" "$(g_fm_line_of "$_f" rung)" L9 \
+                    "rung must be recall, derive or transfer, got '$_v'" ;;
+            esac
+            ;;
+        attempt)
+            _v=$(g_fm_getn "$_f" outcome)
+            case "$_v" in
+                ""|passed|failed) ;;
+                *) g_err "$_f" "$(g_fm_line_of "$_f" outcome)" L9 \
+                    "attempt outcome must be passed, failed or null, got '$_v'" ;;
+            esac
+            ;;
+        error)
+            _v=$(g_fm_get "$_f" resolution)
+            case "$_v" in
+                open|corrected|superseded) ;;
+                erased) ;;  # L5 owns this one: it is a law violation, not a shape error
+                *) g_err "$_f" "$(g_fm_line_of "$_f" resolution)" L9 \
+                    "resolution must be open, corrected or superseded, got '$_v'" ;;
+            esac
+            ;;
+        prediction)
+            _v=$(g_fm_get "$_f" outcome)
+            case "$_v" in
+                open|confirmed|refuted) ;;
+                *) g_err "$_f" "$(g_fm_line_of "$_f" outcome)" L9 \
+                    "prediction outcome must be open, confirmed or refuted, got '$_v'" ;;
+            esac
+            ;;
+        subject)
+            _v=$(g_fm_get "$_f" milestone_earned)
+            case "$_v" in
+                true|false) ;;
+                *) g_err "$_f" "$(g_fm_line_of "$_f" milestone_earned)" L9 \
+                    "milestone_earned must be true or false, got '$_v'" ;;
+            esac
+            ;;
+    esac
+
+    for _k in $(g_fm_keys "$_f"); do
+        _v=$(g_fm_get "$_f" "$_k")
+        [ "$_v" = "null" ] && continue
+        [ -n "$_v" ] || continue
+        for _dk in $DATE_KEYS; do
+            if [ "$_dk" = "$_k" ]; then
+                g_iso_valid "$_v" || g_err "$_f" "$(g_fm_line_of "$_f" "$_k")" L9 \
+                    "'$_k' must be YYYY-MM-DD, got '$_v'"
+            fi
+        done
+        for _ik in $INT_KEYS; do
+            if [ "$_ik" = "$_k" ]; then
+                case "$_v" in
+                    *[!0-9]*) g_err "$_f" "$(g_fm_line_of "$_f" "$_k")" L9 \
+                        "'$_k' must be a non-negative integer, got '$_v'" ;;
+                esac
+            fi
+        done
+    done
+
+    if [ "$_t" = "claim" ]; then
+        _d=$(g_fm_get "$_f" difficulty)
+        if [ -n "$_d" ] && [ "$_d" -ge 1 ] 2>/dev/null && [ "$_d" -le 10 ] 2>/dev/null; then :; else
+            g_err "$_f" "$(g_fm_line_of "$_f" difficulty)" L9 "difficulty must be an integer 1..10, got '$_d'"
+        fi
+    fi
+
+    _cr=$(g_fm_get "$_f" created); _up=$(g_fm_get "$_f" updated)
+    if g_iso_valid "$_cr" && g_iso_valid "$_up"; then
+        [ "$(g_days_diff "$_cr" "$_up")" -ge 0 ] || \
+            g_err "$_f" "$(g_fm_line_of "$_f" updated)" L9 "updated ($_up) precedes created ($_cr)"
+    fi
+}
+
+# ── L1: the Closed Book ──────────────────────────────────────────────────────
+
+l1_closed_book() {
+    _f="$1"
+    [ "$(g_fm_get "$_f" status)" = "compiled" ] || return 0
+    _u=$(g_fm_getn "$_f" unlocked_by)
+    if [ -z "$_u" ]; then
+        g_err "$_f" "$(g_fm_line_of "$_f" unlocked_by)" L1 \
+            "compiled claim with no unlocked_by: the answer sheet is open and the learner has not attempted it (Law 1)"
+        return
+    fi
+    ref_resolves "$_u" "attempt error" || g_err "$_f" "$(g_fm_line_of "$_f" unlocked_by)" L1 \
+        "unlocked_by '$_u' does not resolve to an existing attempt or error (Law 1)"
+}
+
+# ── L2: no summary as first contact ──────────────────────────────────────────
+
+l2_no_summary() {
+    _f="$1"
+    g_fm_has "$_f" summary || return 0
+    _id=$(g_fm_get "$_f" id)
+    _found=0
+    while IFS= read -r c; do
+        [ -n "$c" ] || continue
+        [ "$(g_fm_get "$c" source)" = "$_id" ] || continue
+        _cid=$(g_fm_get "$c" id)
+        while IFS= read -r a; do
+            [ -n "$a" ] || continue
+            if [ "$(g_fm_get "$a" claim)" = "$_cid" ]; then
+                _found=1
+                break
+            fi
+        done < "$T_attempt"
+        [ "$_found" -eq 1 ] && break
+    done < "$T_claim"
+    [ "$_found" -eq 1 ] || g_err "$_f" "$(g_fm_line_of "$_f" summary)" L2 \
+        "source carries a summary but no attempt has been made against any claim citing it (Law 2)"
+}
+
+# ── L3: provenance ───────────────────────────────────────────────────────────
+
+l3_provenance() {
+    _f="$1"
+    [ "$(g_fm_get "$_f" status)" = "compiled" ] || return 0
+    _s=$(g_fm_getn "$_f" source)
+    _l=$(g_fm_getn "$_f" locator)
+    _k=$(g_fm_getn "$_f" kind)
+    [ -n "$_s" ] || g_err "$_f" "$(g_fm_line_of "$_f" source)" L3 "compiled claim has no source (Law 3)"
+    [ -n "$_l" ] || g_err "$_f" "$(g_fm_line_of "$_f" locator)" L3 \
+        "compiled claim has no locator; without it there is nowhere to check (Law 3)"
+    [ -n "$_k" ] || g_err "$_f" "$(g_fm_line_of "$_f" kind)" L3 \
+        "compiled claim has no kind; an unmarked inference launders itself into a quotation (Law 3)"
+    if [ -n "$_s" ]; then
+        ref_resolves "$_s" "source" || g_err "$_f" "$(g_fm_line_of "$_f" source)" L3 \
+            "source '$_s' does not resolve to an existing source note (Law 3)"
+    fi
+}
+
+# ── L4: exposure is not mastery ──────────────────────────────────────────────
+
+l4_not_exposure() {
+    _f="$1"; _t=$(g_fm_get "$_f" type)
+
+    if [ "$_t" = "claim" ] && [ "$(g_fm_get "$_f" state)" = "proven" ]; then
+        _id=$(g_fm_get "$_f" id)
+        _best=""
+        while IFS= read -r p; do
+            [ -n "$p" ] || continue
+            [ "$(g_fm_get "$p" claim)" = "$_id" ] || continue
+            if [ -z "$_best" ]; then _best=$p; else _best=$(_better_proof "$_best" "$p"); fi
+        done < "$T_proof"
+
+        if [ -z "$_best" ]; then
+            g_err "$_f" "$(g_fm_line_of "$_f" state)" L4 \
+                "state is proven but no proof note claims it; exposure is not mastery (Law 4)"
+            return
+        fi
+        _rung=$(g_fm_get "$_best" rung)
+        case "$_rung" in
+            recall|derive|transfer) ;;
+            *)
+                g_err "$_best" "$(g_fm_line_of "$_best" rung)" L4 \
+                    "proof has no legal rung, so it cannot support a proven state (Law 4)"
+                return ;;
+        esac
+
+        if [ "$_rung" = "transfer" ]; then
+            _bd=$(g_fm_get "$_best" verified)
+            if g_iso_valid "$_bd"; then
+                while IFS= read -r a; do
+                    [ -n "$a" ] || continue
+                    [ "$(g_fm_get "$a" claim)" = "$_id" ] || continue
+                    [ "$(g_fm_get "$a" outcome)" = "failed" ] || continue
+                    _ad=$(g_fm_get "$a" created)
+                    if g_iso_valid "$_ad" && [ "$(g_days_diff "$_bd" "$_ad")" -gt 0 ]; then
+                        g_err "$_f" "$(g_fm_line_of "$_f" state)" L4 \
+                            "proven at transfer but a later attempt failed on $_ad; the rung penalty demotes this to failed or re-attempting (Law 4)"
+                    fi
+                done < "$T_attempt"
+            fi
+        fi
+    fi
+
+    if [ "$_t" = "subject" ] && [ "$(g_fm_get "$_f" milestone_earned)" = "true" ]; then
+        _dir=$(dirname "$_f")
+        _got=0
+        while IFS= read -r p; do
+            [ -n "$p" ] || continue
+            [ "$(g_fm_get "$p" rung)" = "transfer" ] || continue
+            _cp=$(path_of "$(g_fm_get "$p" claim)") || continue
+            case "$_cp" in
+                "$_dir"/*) _got=1; break ;;
+            esac
+        done < "$T_proof"
+        [ "$_got" -eq 1 ] || g_err "$_f" "$(g_fm_line_of "$_f" milestone_earned)" L4 \
+            "milestone_earned is true but no transfer-rung proof exists in this subject; only transfer earns the field"
+    fi
+}
+
+# ── L5: the ledger ───────────────────────────────────────────────────────────
+
+l5_ledger() {
+    _f="$1"
+    _v=$(g_fm_get "$_f" resolution)
+    if [ "$_v" = "erased" ]; then
+        g_err "$_f" "$(g_fm_line_of "$_f" resolution)" L5 \
+            "resolution 'erased' is not a legal value and never will be; corrections append (Law 5)"
+    fi
+    _v=$(g_fm_get "$_f" recorded_at)
+    g_iso_valid "$_v" || g_err "$_f" "$(g_fm_line_of "$_f" recorded_at)" L5 \
+        "recorded_at must be YYYY-MM-DD; an undated error is not a record (Law 5)"
+    _s=$(g_fm_getn "$_f" supersedes)
+    if [ -n "$_s" ]; then
+        ref_resolves "$_s" "*" || g_err "$_f" "$(g_fm_line_of "$_f" supersedes)" L5 \
+            "supersedes '$_s' dangles; the superseded note must stay (Law 5)"
+    fi
+}
+
+# ── L6: due honesty ──────────────────────────────────────────────────────────
+
+l6_due_honesty() {
+    _f="$1"
+    _d=$(g_fm_getn "$_f" due)
+    [ -n "$_d" ] || return 0
+    g_iso_valid "$_d" || { g_err "$_f" "$(g_fm_line_of "$_f" due)" L6 "due '$_d' is not a valid date"; return; }
+    [ "$(g_fm_get "$_f" state)" = "proven" ] || return 0
+    if [ "$(g_days_between "$_d" "$(g_today_iso)")" -lt 0 ]; then
+        g_err "$_f" "$(g_fm_line_of "$_f" due)" L6 \
+            "state is proven but due $_d is in the past; run bin/g-schedule (Law 4)"
+    fi
+}
+
+# ── L7: link integrity ───────────────────────────────────────────────────────
+
+l7_links() {
+    _f="$1"
+    for _k in $REF_KEYS; do
+        g_fm_has "$_f" "$_k" || continue
+        # supersedes is L5's field; checking it here too would make the two
+        # rules indistinguishable and neither independently testable.
+        [ "$_k" = "supersedes" ] && continue
+        _allow=$(ref_allowed "$_k") || continue
+        _v=$(g_fm_getn "$_f" "$_k")
+        [ -n "$_v" ] || continue
+        ref_resolves "$_v" "$_allow" || g_err "$_f" "$(g_fm_line_of "$_f" "$_k")" L7 \
+            "'$_k' -> '$_v' does not resolve to an existing note of type $_allow"
+    done
+    _wl=$(scratch "wl.$G_ERRORS")
+    if g_body "$_f" 2>/dev/null | grep -o '\[\[[^]]*\]\]' 2>/dev/null \
+        | sed 's/^\[\[//; s/\]\]$//; s/|.*$//' | LC_ALL=C sort -u > "$_wl"; then :; else : > "$_wl"; fi
+    while IFS= read -r t; do
+        [ -n "$t" ] || continue
+        if ! path_of "$t" >/dev/null 2>&1; then
+            g_err "$_f" 1 L7 "wikilink [[$t]] does not resolve to a note id"
+        fi
+    done < "$_wl"
+    rm -f "$_wl"
+}
+
+# ── L11: anti-gamification ───────────────────────────────────────────────────
+
+BANNED_FIELDS="score streak points xp level rank"
+
+l11_no_scores() {
+    _f="$1"
+    for _b in $BANNED_FIELDS; do
+        if grep -qE "^$_b[[:space:]]*:" "$_f" 2>/dev/null; then
+            g_err "$_f" 1 L11 \
+                "field '$_b' is not permitted anywhere in the vault; a scoreboard manufactures the feeling of progress without the progress"
+        fi
+    done
+}
+
+# ── L8: the deletion test ────────────────────────────────────────────────────
+#
+# Scoped to the vault's *note* directories. Tooling (bin/, tests/) and repo
+# metadata (LICENSE, .gitignore) are not vault state and are not this rule's
+# business — conflating them would make L8 cry wolf on the project's own code.
+
+NOTE_DIRS="sources claims attempts proofs predictions errors insights practices audits self"
+
+l8_durability() {
+    _root="$1"
+    _all=$(scratch "allf.$G_ERRORS")
+    : > "$_all"
+    for _d in $NOTE_DIRS; do
+        [ -d "$_root/$_d" ] || continue
+        find "$_root/$_d" -type f -not -path '*/raw/*' 2>/dev/null >> "$_all"
+    done
+    find "$_root" -maxdepth 1 -type f -name '*.md' 2>/dev/null >> "$_all"
+    LC_ALL=C sort -u "$_all" > "$_all.s" 2>/dev/null || cp "$_all" "$_all.s"
+    while IFS= read -r f; do
+        [ -n "$f" ] || continue
+        case "$f" in
+            */raw/*) continue ;;
+            *.md) ;;
+            *) g_err "$f" 1 L8 "non-markdown file under the vault; durable state must be markdown (The Deletion Test)" ;;
+        esac
+    done < "$_all.s"
+    rm -f "$_all" "$_all.s"
+}
+
+l8_gitignore() {
+    _root="$1"
+    [ -f "$_root/.gitignore" ] || return 0
+    for probe in rules/00-precedence.md templates/claim.md docs/DESIGN-DECISIONS.md \
+                 examples/book/subject.md examples/decision/subject.md AGENTS.md README.md; do
+        if [ -e "$_root/$probe" ]; then
+            if (cd "$_root" && git check-ignore -q -- "$probe" 2>/dev/null); then
+                g_err "$_root/.gitignore" 1 L8 \
+                    ".gitignore would ignore '$probe'; this file must never ignore markdown (The Deletion Test)"
+            fi
+        fi
+    done
+}
+
+# ── L10: portability ─────────────────────────────────────────────────────────
+
+l10_portability() {
+    _f="$1/AGENTS.md"
+    [ -f "$_f" ] || return 0
+    _b=$(wc -c < "$_f")
+    [ "$_b" -lt 32768 ] || g_err "$_f" 1 L10 \
+        "AGENTS.md is $_b bytes; Codex caps project_doc_max_bytes at 32768"
+}
+
+# ── L12: citation honesty ────────────────────────────────────────────────────
+
+l12_citations() {
+    _root="$1"
+    _ledger="$_root/CITATIONS.md"
+    if [ ! -f "$_ledger" ]; then
+        g_err "$ledger" 1 L12 "CITATIONS.md is missing; citations cannot be graded"
+        return
+    fi
+    _known=$(scratch known); _banned=$(scratch banned); _refs=$(scratch refs)
+    awk '/^## /{ print $2 }' "$_ledger" | LC_ALL=C sort -u > "$_known"
+    awk '/^## /{ id = $2 } /^- \*\*Grade\*\*: DO-NOT-CLAIM/{ if (id != "") print id }' "$_ledger" \
+        | LC_ALL=C sort -u > "$_banned"
+
+    find "$_root" -name '*.md' -not -path '*/.git/*' -not -name CITATIONS.md 2>/dev/null \
+        | LC_ALL=C sort > "$_refs"
+    while IFS= read -r f; do
+        [ -n "$f" ] || continue
+        _ids=$(scratch "ids.$G_ERRORS")
+        if grep -o '\[cite: [^]]*\]' "$f" 2>/dev/null | sed 's/\[cite: //; s/\]//' \
+            | LC_ALL=C sort -u > "$_ids"; then :; else : > "$_ids"; fi
+        while IFS= read -r id; do
+            [ -n "$id" ] || continue
+            if ! grep -qx -- "$id" "$_known"; then
+                g_err "$f" 1 L12 "[cite: $id] does not resolve to a heading in CITATIONS.md"
+            elif grep -qx -- "$id" "$_banned"; then
+                g_err "$f" 1 L12 "[cite: $id] is graded DO-NOT-CLAIM; this build must not cite it"
+            fi
+        done < "$_ids"
+        rm -f "$_ids"
+    done < "$_refs"
+    rm -f "$_known" "$_banned" "$_refs"
+}
+
+# ── drivers ──────────────────────────────────────────────────────────────────
+
+lint_vault() {
+    build_index "$1"
+    while IFS= read -r f; do
+        [ -n "$f" ] || continue
+        g_has_frontmatter "$f" || continue
+        _t=$(g_fm_get "$f" type)
+        case "$_t" in
+            subject|source|claim|proof|attempt|error|prediction|insight|practice|audit) ;;
+            *) continue ;;
+        esac
+        l9_schema "$f"
+        case "$_t" in
+            claim)   l1_closed_book "$f"; l3_provenance "$f"; l4_not_exposure "$f" ;;
+            source)  l2_no_summary "$f" ;;
+            error)   l5_ledger "$f" ;;
+            subject) l4_not_exposure "$f" ;;
+        esac
+        l6_due_honesty "$f"
+        l7_links "$f"
+        l11_no_scores "$f"
+    done < "$ALLNOTES"
+}
+
+lint_templates() {
+    while IFS= read -r f; do
+        [ -n "$f" ] || continue
+        l9_schema "$f"
+        l11_no_scores "$f"
+    done < "$ALLNOTES"
+}
+
+deletion_test() {
+    _root="$1"
+    _tmp=$(mktemp -d "${TMPDIR:-/tmp}/g-deletion.XXXXXX") || return 1
+    _man=$(scratch manifest)
+    (cd "$_root" && find . -name '*.md' -not -path './.git/*' 2>/dev/null | LC_ALL=C sort) > "$_man"
+    while IFS= read -r rel; do
+        [ -n "$rel" ] || continue
+        mkdir -p "$_tmp/$(dirname "$rel")" 2>/dev/null
+        cp "$_root/$rel" "$_tmp/$rel" 2>/dev/null || true
+    done < "$_man"
+
+    _n=$(find "$_tmp" -name '*.md' 2>/dev/null | wc -l)
+    if [ "$_n" -eq 0 ]; then
+        g_err "$_root" 1 L8 "deletion test copied zero markdown files; it proved nothing"
+        rm -rf "$_tmp"
+        return
+    fi
+    lint_vault "$_tmp"
+    rm -rf "$_tmp"
+}
+
+# ── main ─────────────────────────────────────────────────────────────────────
+
+[ -n "$VAULT$REPO_ROOT$TEMPLATES" ] || { usage >&2; exit 2; }
+
+SCRATCH=$(mktemp -d "${TMPDIR:-/tmp}/g-lint.XXXXXX") || g_die "cannot create scratch dir"
+
+if [ -n "$TEMPLATES" ]; then
+    [ -d "$TEMPLATES" ] || g_die "no such directory: $TEMPLATES"
+    build_index "$TEMPLATES"
+    lint_templates
+    l12_citations "$(dirname "$TEMPLATES")"
+fi
+
+if [ -n "$VAULT" ]; then
+    [ -d "$VAULT" ] || g_die "no such directory: $VAULT"
+    lint_vault "$VAULT"
+    l8_durability "$VAULT"
+    [ "$DELETION" -eq 1 ] && deletion_test "$VAULT"
+fi
+
+if [ -n "$REPO_ROOT" ]; then
+    [ -d "$REPO_ROOT" ] || g_die "no such directory: $REPO_ROOT"
+    l8_gitignore "$REPO_ROOT"
+    l10_portability "$REPO_ROOT"
+    l12_citations "$REPO_ROOT"
+    if [ -d "$REPO_ROOT/examples" ]; then
+        for v in "$REPO_ROOT"/examples/*/; do
+            [ -f "$v/subject.md" ] || continue
+            printf '# example vault: %s\n' "${v%/}"
+            lint_vault "${v%/}"
+            l8_durability "${v%/}"
+        done
+        if [ "$DELETION" -eq 1 ]; then
+            for v in "$REPO_ROOT"/examples/*/; do
+                [ -f "$v/subject.md" ] || continue
+                printf '# deletion test: %s\n' "${v%/}"
+                deletion_test "${v%/}"
+            done
+        fi
+    fi
+fi
+
+printf '\n%d problem(s)\n' "$G_ERRORS"
+[ "$G_ERRORS" -eq 0 ] || exit 1
+exit 0

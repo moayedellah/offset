@@ -1,12 +1,12 @@
 ---
 type: audit
-id: YYYY-MM-DD-period
+id: 2026-01-01-period
 title: TODO — attention audit for PERIOD
-created: YYYY-MM-DD
-updated: YYYY-MM-DD
+created: 2026-01-01
+updated: 2026-01-01
 period: TODO — e.g. 2026-W39
-from: YYYY-MM-DD
-to: YYYY-MM-DD
+from: 2026-01-01
+to: 2026-01-01
 ---
 
 # TODO — attention audit

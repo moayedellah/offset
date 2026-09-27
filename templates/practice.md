@@ -1,9 +1,9 @@
 ---
 type: practice
-id: YYYY-MM-DD-slug
+id: 2026-01-01-slug
 title: TODO — the practice
-created: YYYY-MM-DD
-updated: YYYY-MM-DD
+created: 2026-01-01
+updated: 2026-01-01
 cadence: TODO — e.g. 3x/week
 state: unseen
 due: null

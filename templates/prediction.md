@@ -1,11 +1,11 @@
 ---
 type: prediction
-id: YYYY-MM-DD-slug
+id: 2026-01-01-slug
 title: TODO — the prediction
-created: YYYY-MM-DD
-updated: YYYY-MM-DD
+created: 2026-01-01
+updated: 2026-01-01
 statement: TODO — a falsifiable claim about the world, stated so it could be wrong
-date: YYYY-MM-DD
+date: 2026-01-01
 outcome: open
 refuted_by: null
 ---
