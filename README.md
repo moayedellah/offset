@@ -41,7 +41,7 @@ claim in this repository is graded in [`CITATIONS.md`](CITATIONS.md), and rule
 ## Install
 
 ```sh
-git clone <this-repo> ~/grimoire
+git clone https://github.com/moayedellah/grimoire.git ~/grimoire
 cd ~/grimoire
 ```
 

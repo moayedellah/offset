@@ -3,7 +3,7 @@
 ## Install and point an agent at the root
 
 ```sh
-git clone <this-repo> ~/grimoire
+git clone https://github.com/moayedellah/grimoire.git ~/grimoire
 cd ~/grimoire
 ```
 

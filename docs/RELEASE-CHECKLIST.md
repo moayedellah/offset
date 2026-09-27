@@ -32,18 +32,36 @@ unverified plan: it contains a rule that fails the build when a document cites
 something unverifiable. Please close this before publishing, and say plainly in
 the first commit or release note that the review came after the first draft.
 
-## 2. `LICENSE` — copyright holder
+## 2. `LICENSE` — copyright holder — **DONE**
 
-`LICENSE` line 3 reads `Copyright (c) 2026 <handle> and contributors`.
+`Copyright (c) 2026 moayedellah and contributors`, derived from the
+authenticated GitHub account rather than asked for.
 
-- [ ] Replace `<handle>` with your GitHub handle.
+## 3. Clone URL — **DONE, with one assumption**
 
-## 3. `README.md` — repository URL
+`README.md` and `docs/HOW-IT-WORKS.md` now read
+`git clone https://github.com/moayedellah/grimoire.git ~/grimoire`.
 
-Two places show `<this-repo>` in the install instructions (`README.md`,
-`docs/HOW-IT-WORKS.md`).
+**Assumption:** the repository will be `moayedellah/grimoire` — your account,
+the name we chose. If you push it to an org, or rename it, that is a two-line
+find-and-replace.
 
-- [ ] Replace with the real clone URL once the repo exists.
+## 3b. Commit attribution — **NEEDS A DECISION**
+
+The first five commits were made under a placeholder identity
+(`grimoire <grimoire@localhost>`) before the real one was known. The repo-local
+git identity is now set to `0xRinx <moayedellahcode@gmail.com>`, so every commit
+from here on is correct.
+
+The repo is unpublished, so fixing the five is trivial and safe. **Not done
+unilaterally**, because rewriting history is destructive:
+
+```sh
+git rebase --exec 'git commit --amend --no-edit --reset-author' -i --root
+```
+
+Then force-push, or — simpler, since nothing is published yet — just let the
+first release note say the early commits carry a placeholder author.
 
 ## 4. Translated `README`
 
