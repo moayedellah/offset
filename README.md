@@ -14,7 +14,7 @@ lint rules fail the build when you break your own laws.
 Zero required runtime. The only executable is a language model reading text.
 
 Everything below is text. There are no images in this repository, no badge
-graphics, no audio. That is not minimalism, it is [L8](#the-five-laws): the
+graphics, no audio. That is not minimalism, it is [L8](#4-the-five-laws): the
 Deletion Test strips every non-markdown file, so a banner would be the first
 thing to go. A project that insists its state outlives its software should not
 put a JPEG in its own README.
@@ -35,7 +35,7 @@ put a JPEG in its own README.
 | [8. Two disciplines](#8-two-disciplines) | what a law is, and what it is not |
 | [9. What this cannot do](#9-what-this-system-cannot-do) | the limits, stated first |
 | [10. Install](#10-install) | and the ten-minute path |
-| [11. Anatomy](#11-anatomy-of-a-grimoire) | the files |
+| [11. Anatomy](#11-anatomy-of-an-offset) | the files |
 | [12. How a change ships](#12-how-a-change-ships) | the loop, and what CI checks |
 | [13. Contribute](#13-contribute) | how to add a law or a citation |
 | [14. The author](#14-the-author) | who built this |
