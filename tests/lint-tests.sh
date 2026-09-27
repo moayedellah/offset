@@ -10,8 +10,8 @@
 # a test block cannot quietly delete a check.
 
 set -u
-HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-ROOT=$(CDPATH= cd -- "$HERE/.." && pwd)
+HERE=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
+ROOT=$(CDPATH='' cd -- "$HERE/.." && pwd)
 G="$ROOT/bin/g-lint"
 
 WORK=""
@@ -63,6 +63,10 @@ base_vault() {
     note practices/pr.md         practice   pr    'cadence: 3x/week' 'state: proven' \
         'due: 2099-01-01' 'last_review: 2026-01-01' 'lapses: 0' 'stability: 1d' \
         'difficulty: 5' 'proof: null'
+    # `proof: null` is deliberate: L4 resolves the back-reference from the proof's
+    # `practice:` field, so pointing `proof:` at prp would make L7d fail too.
+    note proofs/prp.md           proof      prp   'claim: null' 'practice: pr' \
+        'rung: recall' 'artifact: scratch.md' 'verified: 2026-01-01'
 }
 
 hit_rules() { printf '%s\n' "$1" | sed -n 's/.*: L\([0-9][0-9]*\) .*/L\1/p' | LC_ALL=C sort -u; }
@@ -137,6 +141,10 @@ base_vault
 note subject.md subject subj 'state: unseen' 'milestone_earned: true'
 expect_only L4 "milestone claimed with no transfer proof"
 
+printf '\nL4d a proven practice needs a proof\n'
+base_vault; rm -f "$WORK/proofs/prp.md"
+expect_only L4 "practice proven with no proof note"
+
 printf '\nL5 the ledger\n'
 base_vault
 note errors/s/e1.md error e1 'recorded_at: 2026-01-01' 'resolution: erased' 'supersedes: null'
@@ -174,6 +182,7 @@ git -C "$GI" init -q 2>/dev/null
 printf 'placeholder\n' > "$GI/rules/00-precedence.md"
 printf 'placeholder\n' > "$GI/docs/DESIGN-DECISIONS.md"
 printf 'rules/\n' > "$GI/.gitignore"
+printf '## fixture\n\n- **Grade**: PREPRINT\n' > "$GI/CITATIONS.md"
 _out=$("$G" --repo-root "$GI" 2>&1) || true
 mark L8
 _hit=$(hit_rules "$_out")
