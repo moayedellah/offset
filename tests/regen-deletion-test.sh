@@ -26,6 +26,7 @@ D=$(date -u +%Y-%m-%d)
   printf 'temporary directory and runs the suite from the clean checkout. If you\n'
   printf 're-run it and get a different result, the file was hand-edited.\n\n'
   printf -- '- **Date:** %s\n' "$D"
+  printf -- '- **Source commit:** `%s`\n' "$(cd "$SRC" && git rev-parse --short HEAD 2>/dev/null || echo unknown)"
   printf -- '- **Shell:** %s\n' "$("${SHELL:-sh}" --version 2>/dev/null | head -1 || echo 'sh')"
   printf -- '- **awk:** %s\n' "$(awk --version 2>/dev/null | head -1 || awk -W version 2>&1 | head -1)"
   printf '\n---\n\n## What the deletion test does\n\n'
