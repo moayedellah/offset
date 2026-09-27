@@ -145,7 +145,7 @@ Cite in documents as `[cite: <id>]`.
 
 ## liu2026
 
-- **Grade**: SAFE
+- **Grade**: PREPRINT
 - **Verification**: secondary only (read as a citation in two independent arXiv papers; full text not read)
 - **Citation**: Liu et al. (2026). AI assistance reduces persistence and hurts independent performance. arXiv:2604.04721.
 - **Finding**: As reported by two citing papers: AI assistance raised math and reading performance, but reduced participants' persistence and their performance on subsequent unaided tasks.

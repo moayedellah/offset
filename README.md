@@ -27,9 +27,11 @@ thing to this project and has a better `CLAUDE.md` than most commercial products
 
 | Gap | What everyone does | What this does |
 |---|---|---|
-| **Nobody schedules** | claims "spaced repetition"; `TutorVault`'s entire scheduler is one `last_reviewed` date. No decay, no resurfacing. | A real ladder that decays and resurfaces, enforced by `L6` — a `proven` claim past due **fails the build**. |
+| **Nobody schedules** | claims "spaced repetition"; `TutorVault`'s entire scheduler is one `last_reviewed` date[^tutorvault]. No decay, no resurfacing. | A real ladder that decays and resurfaces, enforced by `L6` — a `proven` claim past due **fails the build**. |
 | **The answer sheet is always open** | the compiled note sits readable and the tutor reads it back on revisit. | Law 1: the compiled claim is gated behind a **recorded failure**. A pointer is the only key. |
 | **Laws are requests, not checks** | every rule is left to model discretion. | All five laws are lint rules. Delete an error and `L5` fails. Cite something unverifiable and `L12` fails. |
+
+[^tutorvault]: [`RobertttBS/TutorVault`](https://github.com/RobertttBS/TutorVault/blob/03178517bf2cdfa065a5ca8156afcabaab2c37f0/CLAUDE.md) → `CLAUDE.md` §6, *State Management & Quiz Feedback*, read at commit `0317851`. That section is where `last_reviewed` is written and read back; the file contains no interval, decay, or resurfacing logic anywhere. Pinned so the comparison stays checkable if `main` moves.
 
 There is also a fourth thing nobody has, which is the part you will not find in
 any of them: **an honesty layer that is mechanically enforced.** Every scientific
