@@ -208,3 +208,46 @@ reports it.
 Without these deferrals, one broken thing trips two rules, and the isolation test
 suite cannot assert that a rule works on its own. A check that cannot be tested
 in isolation is a check you cannot trust.
+
+## 16. No images in the README, and the reference we did not copy
+
+**Chosen.** The README is text and mermaid only. No banner, no badge graphics, no
+screenshot, no audio.
+
+**Rejected.** Opening with a logo banner and a row of shields.io badges, which is
+the conventional shape for a repository README and which the reference layout we
+studied uses.
+
+**Why.** Every one of those is a binary, and `L8` strips every non-markdown file
+under the Deletion Test. A repository whose argument is that durable state must
+outlive its software cannot open by asserting a dependency on an image host. The
+mermaid diagrams are a deliberate substitute: they are source, they diff, and
+they cannot rot out of sync with the code they describe.
+
+**Cost, accepted.** The README is less scannable at a glance than a banner-and-badges
+one, and it looks less like a product launch. The diagrams carry the visual load
+instead.
+
+## 17. The author section claims only what the repository can check
+
+**Chosen.** The author section makes no claim that cannot be verified from inside
+this repository: no job titles, no "passionate about", no list of technologies, and
+no personal philosophy published on the owner's behalf.
+
+**Rejected.** The usual profile paragraph, which is unverifiable from here and
+indistinguishable from every other one. Also rejected: publishing the author's
+private working doctrine, which was considered and explicitly declined.
+
+**Why.** This project ships a lint rule that fails the build on an unverifiable
+citation. A bio that cannot be checked is the same failure in a different file, and
+a private document quoted at length would be a third one: accurate, unverifiable,
+and not the author's to publish here.
+
+**What the section does instead.** It names the refusals, which are all visible in
+the code, and it points at a real defect that was found and fixed. The
+unbound-variable crash in `l12_citations()` is in the git history and in
+[`RELEASE-CHECKLIST.md`](RELEASE-CHECKLIST.md), so the claim is checkable.
+
+**Cost, accepted.** It reads as more self-referential than a normal bio, and it is
+shorter than one. That is the accurate trade for a repository whose subject is
+evidence.
