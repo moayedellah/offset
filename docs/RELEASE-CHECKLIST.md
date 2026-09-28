@@ -1,8 +1,10 @@
 # Release checklist
 
-This repository is **complete, passing, and reviewed.** One item still needs a
-decision only you can make (commit attribution, item 3b); two are optional
-choices rather than debts. The review gate in item 1 is closed.
+This repository is **published, passing, and reviewed.** Everything actionable is
+closed. Two items remain and both are yours to answer, not debts: whether to name
+a language for a translated `README` (item 4), and whether to put your own facts
+into `examples/decision` (item 5). The review gate in item 1 is closed, commit
+attribution in 3b is closed, and one brand asset is outstanding in 3c.
 
 Run this list top to bottom. It is short on purpose.
 
@@ -66,31 +68,50 @@ unreviewed for a while.
 `Copyright (c) 2026 moayedellah and contributors`, derived from the
 authenticated GitHub account rather than asked for.
 
-## 3. Clone URL — **DONE, with one assumption**
+## 3. Clone URL — **DONE**
 
-`README.md` and `docs/HOW-IT-WORKS.md` now read
-`git clone https://github.com/moayedellah/offset.git ~/offset`.
+`README.md` and `docs/HOW-IT-WORKS.md` read
+`git clone https://github.com/moayedellah/offset.git ~/offset`, and the
+repository is live at that URL. Verified from a fresh public clone rather than
+assumed.
 
-**Assumption:** the repository will be `moayedellah/offset` — your account,
-the name we chose. If you push it to an org, or rename it, that is a two-line
-find-and-replace.
+Renaming or moving it later is a two-line find-and-replace across those two
+files, plus the `clone` line in the README's install section.
 
-## 3b. Commit attribution — **NEEDS A DECISION**
+## 3b. Commit attribution — **DONE**
 
 The first five commits were made under a placeholder identity
-(`grimoire <grimoire@localhost>`) before the real one was known. The repo-local
-git identity is now set to `0xRinx <moayedellahcode@gmail.com>`, so every commit
-from here on is correct.
+(`grimoire <grimoire@localhost>`) before the real one was known. **All 25 commits
+are now authored `Moayed Ellah <moayedellahcode@gmail.com>`.** No commit in the
+published history carries the placeholder.
 
-The repo is unpublished, so fixing the five is trivial and safe. **Not done
-unilaterally**, because rewriting history is destructive:
+This took two force-pushes rather than one, because the history was rewritten
+twice: once to set the correct author, and again to correct the name when
+`0xRinx` turned out to be a handle rather than the name. Both were done with
+`--force-with-lease` pinned to the exact remote SHA, so each would have aborted
+rather than clobber if anything else had touched the branch in between. The first
+attempt was rejected, correctly, because `filter-branch` had already rewritten
+the local `origin/main` tracking ref, making the lease a comparison against a
+value that did not exist on the server.
 
-```sh
-git rebase --exec 'git commit --amend --no-edit --reset-author' -i --root
-```
+`docs/DELETION-TEST.md` was regenerated after each rewrite. It names its own
+source commit, and a rewrite invalidates that name, so leaving it would have put
+a commit reference in this repository that points at nothing.
 
-Then force-push, or — simpler, since nothing is published yet — just let the
-first release note say the early commits carry a placeholder author.
+Verified from a fresh public clone, not only locally: 25 commits, one author, no
+placeholder.
+
+## 3c. Brand assets — **DONE, with one item open**
+
+`banner-light.png` and a five-badge SVG set are in `.github/assets/`, wired
+through `<picture>`. The palette was measured from the banner rather than
+chosen. Decision 16 in [`DESIGN-DECISIONS.md`](DESIGN-DECISIONS.md) records the
+reversal, the measured contrast figures, and the badge that was cut.
+
+**Open:** `banner-dark.png` is a flat `#1E1E1E` rectangle, one colour across
+2100x900, with no mark and no text. The dark `<source>` points at the light
+banner so nothing renders as a black box. One `srcset` attribute changes it when
+the real dark asset exists.
 
 ## 4. Translated `README`
 
