@@ -4,8 +4,6 @@
   <img src=".github/assets/banner-light.png" alt="A system for discovering what survives after the book is closed." width="100%">
 </p>
 
-**A system for discovering what survives after the book is closed.**
-
 <p align="center">
   <picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/badges/license-dark.svg"><img alt="license: MIT" src=".github/assets/badges/license-light.svg" height="20"></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/badges/runtime-dark.svg"><img alt="runtime: none" src=".github/assets/badges/runtime-light.svg" height="20"></picture>
@@ -14,22 +12,21 @@
   <picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/badges/deletion-test-dark.svg"><img alt="deletion test: pass" src=".github/assets/badges/deletion-test-light.svg" height="20"></picture>
 </p>
 
-Every badge is a fact you can check inside this repository, and none of them is a
-download count.
+**A system for discovering what survives after the book is closed.**
 
-You do not read to have read books. You read to train the reading brain. The same
-law governs the vault and the operator, and its corollary is the whole product:
+You cannot show that you know something you have never tried to recall and failed
+to recall. Every decision below follows from refusing to skip that step.
 
 > **An AI that removes all cognitive effort is the cognitive equivalent of
 > sitting on the couch.**
 
-So this system refuses to be helpful on demand, and then it proves it. Twelve
-lint rules fail the build when you break your own laws. No runtime, no
-dependencies, no database. The only executable is a language model reading text.
+This exists because reading to have read books trains nothing. It is different
+because its rules are lint rules rather than prompts. It refuses to show you a
+compiled claim before you have produced your own attempt at the raw material.
 
-Start with [what it cannot do](#2-what-this-system-cannot-do). The limits are
-stated before the features, because a system that only lists strengths is
-advertising.
+Start with [the loop](#1-the-loop) for the mechanism, or
+[what the evidence supports](#2-what-the-evidence-supports-and-what-it-does-not)
+for the honest accounting first. The refusals are in chapter 3.
 
 ---
 
@@ -37,65 +34,83 @@ advertising.
 
 | | |
 |---|---|
-| **The argument** | |
-| [1. The problem](#1-the-problem) | the gap this lives in |
-| [2. What this cannot do](#2-what-this-system-cannot-do) | the limits, first |
-| **The mechanism** | |
-| [3. Three layers](#3-three-layers) | raw, sources, claims, and the lock |
-| [4. The Closed Book](#4-the-closed-book) | how a session actually runs |
-| [5. The Five Laws](#5-the-five-laws) | promises, and the rules that keep them |
-| [6. The state machine](#6-the-state-machine) | seven states and their gates |
-| [7. The scheduler](#7-the-scheduler) | a five-step ladder, honestly |
-| [8. The Hint Ladder](#8-the-hint-ladder) | how to help without leaking |
-| [9. Two disciplines](#9-two-disciplines) | what a law is, and what it is not |
-| **Operating it** | |
-| [10. Install](#10-install) | and the ten-minute path |
-| [11. Anatomy](#11-anatomy-of-an-offset) | the files |
-| [12. How a change ships](#12-how-a-change-ships) | the loop, and what CI checks |
-| [13. Contribute](#13-contribute) | how to add a law or a citation |
-| [14. The author](#14-the-author) | who built this |
+| [1. The loop](#1-the-loop) | a session, end to end |
+| [2. What the evidence supports](#2-what-the-evidence-supports-and-what-it-does-not) | the limits, stated plainly |
+| [3. What it refuses](#3-what-it-refuses) | each refusal, and the rule that enforces it |
+| [4. The Five Laws](#4-the-five-laws) | the whole contract in one table |
+| [5. Run it](#5-run-it) | install, checks, and the ten-minute path |
+| [6. Reference](#6-reference) | state machine, ladder, hint ladder, layout |
 
 Longer reading lives in [`docs/`](docs/):
-[`HOW-IT-WORKS.md`](docs/HOW-IT-WORKS.md) for the mechanics,
-[`PHILOSOPHY.md`](docs/PHILOSOPHY.md) for why,
+[`PHILOSOPHY.md`](docs/PHILOSOPHY.md) for why the design is this way,
+[`HOW-IT-WORKS.md`](docs/HOW-IT-WORKS.md) for the mechanics in full,
 [`DESIGN-DECISIONS.md`](docs/DESIGN-DECISIONS.md) for what was rejected and why,
-and [`CITATIONS.md`](CITATIONS.md) for the graded evidence ledger.
+[`DELETION-TEST.md`](docs/DELETION-TEST.md) for a generated transcript, and
+[`CITATIONS.md`](CITATIONS.md) for the graded evidence ledger.
 
 ---
 
-## 1. The problem
+## 1. The loop
 
-Three gaps, shared by everything in the field.
+A session, exactly as `AGENTS.md` specifies it.
 
-**Nobody schedules.** Products claim "spaced repetition" and then store one
-`last_reviewed` date. `TutorVault` is the closest thing to this project and has a
-better `CLAUDE.md` than most commercial products, and its entire scheduler is
-that single date[^tutorvault]. No decay. No resurfacing. Here the ladder decays
-and resurfaces, and `L6` fails the build when a `proven` claim is past due.
+```mermaid
+flowchart TD
+    open["Learner opens a session"] --> pull["g-today lists the due set"]
+    pull --> propose["Agent proposes one candidate.<br/>Learner chooses. Never both."]
+    propose --> ask["Agent asks ONE scaffolded question.<br/>The compiled claim stays shut."]
+    ask --> answer["Learner answers"]
+    answer --> record["Write the attempt: passed or failed"]
+    record --> gate{"Passed?"}
+    gate -->|no| err["Write the error.<br/>The ledger grows, nothing is deleted."]
+    err --> ask
+    gate -->|yes| proof["Write the proof at the rung actually reached"]
+    proof --> sched["g-schedule advances one ladder step"]
+    sched --> open
+```
 
-**The answer sheet is always open.** The compiled note sits readable and the
-tutor reads it back on the second visit. Here the compiled claim is gated behind
-a recorded failure, and a pointer is the only key.
+Two things carry the weight. The agent never reads the compiled claim aloud, only
+that it exists. And it asks one question, then stops and waits.
 
-**Laws are requests, not checks.** Rules are left to model discretion, so they
-hold exactly as long as the model's attention does. Here all five laws are lint
-rules: delete an error and `L5` fails, cite something unverifiable and `L12`
-fails.
+`g-today` is **pull-only**. It never notifies, never schedules, and writes nothing
+but `today.md`. If you open a task and the agent wants to mention something
+overdue, the required sentence is: *"That's due, but not now. You opened a task.
+Say the word and I'll pick it up after."* Cognitive activity about a previous task
+persists while you work on the next one, and a proactive tutor is a machine for
+manufacturing exactly that.
 
-[^tutorvault]: [`RobertttBS/TutorVault`](https://github.com/RobertttBS/TutorVault/blob/03178517bf2cdfa065a5ca8156afcabaab2c37f0/CLAUDE.md) at commit `0317851`, section 6, *State Management & Quiz Feedback*. That is where `last_reviewed` is written and read back; the file contains no interval, decay or resurfacing logic. Pinned so the comparison stays checkable if `main` moves.
+### Three layers
 
-There is a fourth gap, and it is the one nobody has: **an honesty layer that is
-mechanically enforced.** Every scientific claim in this repository is graded in
-[`CITATIONS.md`](CITATIONS.md), with a `Verification` field that separates a
-full-text read from a third-hand summary. `L12` fails the build if any document
-cites an id graded `DO-NOT-CLAIM`.
+```mermaid
+flowchart TD
+    raw["raw/<br/>the bytes: book, paper, transcript<br/>gitignored, yours, never committed"]
+    src["sources/<br/>provenance: author, title, year, locator<br/>committed"]
+    claim["claims/<br/>what you compiled<br/>committed, and locked"]
+    att["attempts/<br/>your own attempt on the raw material"]
+    proof["proofs/<br/>an artifact you produced, at a named rung"]
 
-## 2. What this system cannot do
+    raw --> src
+    src -->|"L3: locator and kind required"| claim
+    att -->|"L1: the only key"| claim
+    claim -->|"L4: never without an artifact"| proof
+```
+
+`raw/` holds the bytes and is the only thing this repository refuses to track; a
+`README.md` inside it is the one exception, because that file is ours rather than
+the source's. `sources/` holds a provenance record, so **you commit the
+coordinates, not the content**, which is what makes a well-sourced vault a legal
+public repository. `claims/` holds what you compiled, gated behind your attempt:
+the adaptation of the three-layer pattern from [cite: karpathy_llmwiki].
+
+Your own prior reasoning lives in `self/`, and is **not** gitignored. A directory
+marked ephemeral would mean the system had failed at the only thing it promised.
+
+## 2. What the evidence supports and what it does not
 
 ### The tutoring ceiling is lower than the field admits
 
-The standard belief is that human tutoring reaches **d = 2.0** over no tutoring.
-A careful review found **d = 0.79**, with intelligent tutoring systems at 0.76,
+The standard belief is that human tutoring reaches **d = 2.0** over no tutoring. A
+careful review found **d = 0.79**, with intelligent tutoring systems at 0.76,
 nearly identical, both far below belief [cite: vanlehn2011]. This system does not
 promise the 2-sigma result, because a careful review says it was never real.
 
@@ -105,8 +120,8 @@ The strongest evidence that a well-designed AI tutor can beat good human-led
 active learning is real: N = 233, effect size 0.63 to 1.3, p < 10⁻⁸
 [cite: kestin2025]. But the authors' own scope limitation is that they do *not*
 claim it wins for *"complex synthesis of multiple concepts and higher-order
-critical thinking"*, and that excluded case is roughly what this system is for.
-It is also an **immediate** post-test, not a delayed retention test.
+critical thinking"*, and that excluded case is roughly what this system is for. It
+is also an **immediate** post-test, not a delayed retention test.
 
 ### The same tooling, differently designed, does measurable harm
 
@@ -128,8 +143,8 @@ you something.
 Predictions of your own performance were *uncorrelated* with actual performance
 [cite: karpicke2008]; perceived learning from active learning ran *opposite* to
 actual gain [cite: deslauriers2019]; and students systematically over-estimated
-what an AI tutor had done for them [cite: bastani2025]. Hence artifacts rather
-than self-report. Every tick needs a file you wrote.
+what an AI tutor had done for them [cite: bastani2025]. Hence artifacts rather than
+self-report. Every tick needs a file you wrote.
 
 ### What works, and what the popular summaries get wrong
 
@@ -150,39 +165,37 @@ confounded spacing, and that when spacing is controlled, restudying helps too
 
 The exercise effect is real and modest, and it takes weeks. An umbrella review
 across 133 reviews, 2,700+ RCTs and 250,000+ participants found general cognition
-SMD 0.42, falling to d = 0.31 after funnel-plot adjustment [cite: bjsm2025]. A
-more conservative meta-analysis finds executive function at g = 0.123
+SMD 0.42, falling to d = 0.31 after funnel-plot adjustment [cite: bjsm2025]. A more
+conservative meta-analysis finds executive function at g = 0.123
 [cite: chang2012]. The dose is **13 to 24 weeks, 20 to 60 minutes, 3 to 7 days a
-week** [cite: ye2024], from adults 45 and over, so do not quietly generalise it
-to a 25-year-old. As we train our body we train our brain [cite: hillman2008].
-Anyone promising faster is selling something.
+week** [cite: ye2024], from adults 45 and over, so do not quietly generalise it to
+a 25-year-old. As we train our body we train our brain [cite: hillman2008]. Anyone
+promising faster is selling something.
 
 The attention mechanism is real; the popular numbers are not. Residue from a
 previous task persists while you work on the next, and what predicts a clean
 switch is *disengaging before you switch* rather than finishing the task
 [cite: leroy2009]. But the classic laboratory switch-cost magnitudes are
-substantially inflated: in a controlled design the cue-repetition effect
-accounted for nearly two-thirds of the measured cost [cite: wiradhany2021]. And
+substantially inflated: in a controlled design the cue-repetition effect accounted
+for nearly two-thirds of the measured cost [cite: wiradhany2021]. And
 **self-initiated** switching has been shown to *reduce* depletion and increase
 focus [cite: nuhn2026], so the no-interruption rule here is about uninvited
 residue, not a ban on thinking across two things.
 
 "Brain rot" is a perception, not a diagnosis. It was Oxford Word of the Year
 2024, defined by the OED as a *"perceived"* loss of critical thinking *attributed
-to* unchallenging content. OUP's own entry records the scientific position:
-there is no evidence that brains actually deteriorate as a direct result.
+to* unchallenging content. OUP's own entry records the scientific position: there
+is no evidence that brains actually deteriorate as a direct result.
 Merriam-Webster's slang entry notes it is not an official medical condition
-[cite: oed2024]. The subjective experience is real and worth taking seriously.
-The neurological claim is not made here.
+[cite: oed2024]. The subjective experience is real and worth taking seriously. The
+neurological claim is not made here.
 
 The word is older than the internet. Thoreau, *Walden*, 1854: *"will not any
 endeavor to cure the brain-rot, which prevails so much more widely and fatally?"*
-[cite: thoreau1854] His complaint was the devaluation of complex thought, a
-society trading interpretable work for simple content.
+[cite: thoreau1854] His complaint was the devaluation of complex thought, a society
+trading interpretable work for simple content.
 
 **The rot is the rot of the grimoire.**
-
-### What we cite, and how carefully
 
 The 2025 cognitive-debt EEG study behind a lot of "AI damages your brain" posts
 is an **arXiv preprint**, not peer reviewed, and it concerns one essay-writing
@@ -191,69 +204,31 @@ and later unaided performance is real and well corroborated, but the paper usual
 cited for it is misattributed, so we cite the ones we could actually verify
 [cite: liu2026]. The full grading is in [`CITATIONS.md`](CITATIONS.md).
 
-## 3. Three layers
+## 3. What it refuses
 
-```mermaid
-flowchart TD
-    raw["raw/<br/>the bytes: book, paper, transcript<br/>gitignored, yours, never committed"]
-    src["sources/<br/>provenance: author, title, year, locator<br/>committed"]
-    claim["claims/<br/>what you compiled<br/>committed, and locked"]
-    att["attempts/<br/>your own attempt on the raw material"]
-    proof["proofs/<br/>an artifact you produced, at a named rung"]
+Seven refusals. Each is enforced by a rule that fails the build, so none of them
+depends on the model's attention holding out.
 
-    raw --> src
-    src -->|"L3: locator and kind required"| claim
-    att -->|"L1: the only key"| claim
-    claim -->|"L4: never without an artifact"| proof
-```
+| Refusal | Enforced by |
+|---|---|
+| A compiled claim you have not attempted yet | `L1` |
+| A summary as your first contact with the material | `L2` |
+| A claim with no source, locator, and kind | `L3` |
+| `proven` with no proof artifact, or a milestone without `transfer` | `L4` |
+| An erased error. `resolution: erased` is not a legal value | `L5` |
+| A `proven` claim left past its due date | `L6` |
+| A citation that does not resolve, or one graded `DO-NOT-CLAIM` | `L12` |
 
-`raw/` holds the bytes. It is the only thing this repository refuses to track, and
-a `README.md` inside it is the one exception, because that file is ours rather
-than the source's.
+A law that is not mechanically enforced is a suggestion wearing a suit. Every row
+above is a test you can fail on purpose.
 
-`sources/` holds a provenance record. **Commit the coordinates, not the content.**
-This is what makes a well-sourced vault a legal public repository.
+`L11` rejects the entire vault if a field named `score`, `streak`, `points`, `xp`,
+`level` or `rank` ever appears. We hold **no empirical claim** that streaks work
+or fail, and `streaks_evidence` is graded `DO-NOT-CLAIM` for exactly that reason.
+The prohibition is philosophical: a streak counter manufactures the *feeling* of
+progress, which is the specific failure this project exists to refuse.
 
-`claims/` holds what you compiled, gated behind your attempt. That middle layer
-gaining a lock is the adaptation of the three-layer pattern from
-[cite: karpathy_llmwiki].
-
-Your own prior reasoning lives in `self/`, and is **not** gitignored. Your thinking
-is durable state. A directory marked ephemeral would mean the system had failed at
-the only thing it promised.
-
-## 4. The Closed Book
-
-The session loop, exactly as `AGENTS.md` specifies it.
-
-```mermaid
-flowchart TD
-    open["Learner opens a session"] --> pull["g-today lists the due set"]
-    pull --> propose["Agent proposes one candidate.<br/>Learner chooses. Never both."]
-    propose --> ask["Agent asks ONE scaffolded question.<br/>The compiled claim stays shut."]
-    ask --> answer["Learner answers"]
-    answer --> record["Write the attempt: passed or failed"]
-    record --> gate{"Passed?"}
-    gate -->|no| err["Write the error.<br/>The ledger grows, nothing is deleted."]
-    err --> ask
-    gate -->|yes| proof["Write the proof at the rung actually reached"]
-    proof --> sched["g-schedule advances one ladder step"]
-    sched --> open
-```
-
-Two things are load-bearing. The agent never reads the compiled claim aloud, only
-that it exists. And it asks one question, then stops and waits.
-
-`g-today` is **pull-only**. It never notifies, never schedules, and writes nothing
-but `today.md`. If you open a task and the agent wants to mention something
-overdue, the required sentence is: *"That's due, but not now. You opened a task. Say
-the word and I'll pick it up after."* Cognitive activity about a previous task
-persists while you work on the next one, and a proactive tutor is a machine for
-manufacturing exactly that.
-
-## 5. The Five Laws
-
-Each is enforced by a lint rule that names it.
+## 4. The Five Laws
 
 | Law | Rule | What it prevents |
 |---|---|---|
@@ -263,10 +238,8 @@ Each is enforced by a lint rule that names it.
 | **4. Exposure is not mastery** | `L4`, `L6` | `proven` with no proof artifact, or a subject milestone without a `transfer` proof |
 | **5. The Ledger** | `L5` | `resolution: erased`, which is not a legal value and never will be |
 
-The other seven rules guard the system rather than a single law: `L7` link
-integrity, `L8` the Deletion Test, `L9` schema, `L10` portability, `L11`
-anti-gamification, and `L12` citation honesty. A proof earns a claim at one of
-three rungs, and only the last can earn a subject milestone:
+A proof earns a claim at one of three rungs, and only the last can earn a subject
+milestone:
 
 | Rung | What the learner demonstrated |
 |---|---|
@@ -274,7 +247,57 @@ three rungs, and only the last can earn a subject milestone:
 | `derive` | reproduces the reasoning |
 | `transfer` | solves a problem the source never solved |
 
-## 6. The state machine
+## 5. Run it
+
+```sh
+git clone https://github.com/moayedellah/offset.git ~/offset
+cd ~/offset
+```
+
+Everything in `bin/` is optional. The vault works with none of it, forever. The
+checks are cheap, though, and they are the only reason the rules mean anything:
+
+```sh
+sh tests/harness.sh                    # 35 assertions, the portable date core
+sh tests/lint-tests.sh                 # 24 cases, one per rule, both directions
+bin/g-lint --templates templates       # templates are schema-valid
+bin/g-lint --repo-root . --deletion-test
+```
+
+Point your agent at the vault root. `AGENTS.md` is the canonical instruction file,
+and every harness either finds it or has a shim for it: `CLAUDE.md`, `GEMINI.md`
+and `QWEN.md` each contain exactly one line, `@AGENTS.md`, because those tools do
+not read `AGENTS.md` themselves [cite: agents_md_standard].
+
+### The ten-minute path
+
+`examples/book/` is a complete worked subject: Darwin, *On the Origin of Species*
+(1859), public domain. Six claims, six attempts, seven proofs across all three
+rungs, three errors, two predictions, three insights and two practices.
+
+1. Open `examples/book/claims/darwin/natural-selection.md`. It is `proven` at
+   `transfer`, the top rung, backed by `proofs/darwin/pr-ns-transfer.md`. Now read
+   `examples/book/attempts/darwin/att-ns.md`, the **failed** attempt dated
+   2026-08-12 that unlocked it. The ordering is the product: the attempt is dated
+   before the reading.
+2. `examples/book/claims/darwin/variation-passes-directly.md` is `retracted`. It
+   is still on disk. Read `errors/darwin/err-vpd.md`, which points at it. The claim
+   was wrong, the correction is recorded, and neither was deleted.
+3. `examples/decision/TODO.md` lists the five facts **only you can supply**. They
+   are missing on purpose, and the example says so rather than inventing them.
+
+Then run the deletion test yourself:
+
+```sh
+bin/g-lint --repo-root . --deletion-test
+```
+
+It copies each example vault, deletes every non-markdown file by construction,
+re-lints, and fails if the result is not clean.
+
+## 6. Reference
+
+### The state machine
 
 Every claim moves through seven states, and every transition needs evidence.
 
@@ -298,7 +321,7 @@ stateDiagram-v2
 correction attached. The failure this whole project is built against is the quiet
 edit, and you cannot audit a record you are allowed to rewrite.
 
-## 7. The scheduler
+### The scheduler
 
 A fixed, transparent ladder. A pass advances one step, a lapse retreats one.
 
@@ -311,15 +334,12 @@ flowchart LR
     s4 -->|stays here| s4
 ```
 
-`g-schedule` writes `due`, `last_review`, `lapses`, `stability` and `difficulty`
-atomically, and refuses to schedule a note that is not `compiled` or `proven`.
-
-**This is not FSRS, and it is not better than FSRS.** FSRS is a trainable DSR model
-with a power-law forgetting curve, and it genuinely schedules better. Its per-item
-state is roughly ten fields including floating-point stability and difficulty, and
-the only precedent we found for that shape in YAML frontmatter was inside an
-Obsidian plugin, which would make a plugin the owner of your state and break the
-Deletion Test.
+**This is not FSRS, and it is not better than FSRS.** FSRS is a trainable DSR
+model with a power-law forgetting curve, and it genuinely schedules better. Its
+per-item state is roughly ten fields including floating-point stability and
+difficulty, and the only precedent we found for that shape in YAML frontmatter was
+inside an Obsidian plugin, which would make a plugin the owner of your state and
+break the Deletion Test.
 
 We chose legibility. A hand-rolled ladder's output is a fact you can verify by
 reading a table, and when it behaves oddly you can work out whether it is wrong. If
@@ -327,7 +347,7 @@ you want FSRS, the swap is contained: keep the six fields, add float precision,
 replace one lookup in `bin/g-schedule`. **That reversibility is the whole reason the
 state is kept small.**
 
-## 8. The Hint Ladder
+### The Hint Ladder
 
 When you are stuck, the agent climbs one rung, and only after you fail the current
 one.
@@ -347,86 +367,15 @@ nothing about your particular problem.
 Rung 5 has to exist, and the agent must be able to give it. Refusing forever is not
 integrity, it is obstruction, and obstruction is its own kind of dishonesty.
 **Friction is not the absence of guidance.** The Closed Book is the friction, the
-ladder is the guidance, and the ladder's top rung is a worked example, which is the
-thing the worked-example effect found works [cite: kirschner2006].
+ladder is the guidance, and the ladder's top rung is a worked example, which is
+the thing the worked-example effect found works [cite: kirschner2006].
 
-## 9. Two disciplines
+The two counted columns in the attention log are there because the mechanism is
+real [cite: leroy2009] [cite: liefooghe2008]. The audit that reads that log back
+reports **frequencies** and never grades. *"Tuesday: 47 switches, 31 under 90
+seconds"* is a fact. *"Focus score 62%"* is a lie with a chart on it.
 
-A **law** is a promise about an immutable record. A **discipline** is a practice by
-a fallible human, and must be breakable, because if breaking it falsified the record
-you would stop opening the vault within a fortnight.
-
-**The Log** is an append-only attention log. Facts only: when a block started and
-ended, what you worked on, what interrupted you, how many switches. No
-interpretation. The two counted columns are there because the mechanism is real
-[cite: leroy2009] [cite: liefooghe2008].
-
-**The Audit** reads the Log back and reports **frequencies**. It never grades.
-*"Tuesday: 47 switches, 31 under 90 seconds"* is a fact. *"Focus score 62%"* is a
-lie with a chart on it.
-
-`L11` rejects the entire vault if a field named `score`, `streak`, `points`, `xp`,
-`level` or `rank` ever appears. We hold **no empirical claim** that streaks work or
-fail, and `streaks_evidence` is graded `DO-NOT-CLAIM` for exactly that reason. The
-prohibition is philosophical: a streak counter manufactures the *feeling* of
-progress, which is the specific failure this project exists to refuse.
-
-The agent's **voice** uses sets, reps and a rack that is loaded or quiet, while the
-**schema stays neutral**, because a few hundred lines of POSIX `sh` have to parse
-every note in the vault, and a vault of `type: rep` files is a gym log.
-
-## 10. Install
-
-```sh
-git clone https://github.com/moayedellah/offset.git ~/offset
-cd ~/offset
-```
-
-Point your agent at the vault root. `AGENTS.md` is the canonical instruction file,
-and every harness either finds it or has a shim for it: `CLAUDE.md`, `GEMINI.md`
-and `QWEN.md` each contain exactly one line, `@AGENTS.md`, because those tools do
-not read `AGENTS.md` themselves [cite: agents_md_standard].
-
-Read one file, then try the loop:
-
-```sh
-cat rules/01-five-laws.md
-
-bin/g-new . subject my-subject --title "Whatever I'm learning"
-bin/g-today .
-bin/g-lint --vault .
-```
-
-Everything in `bin/` is optional. The vault works with none of it, forever.
-
-### The ten-minute path
-
-`examples/book/` is a complete worked subject: Darwin, *On the Origin of Species*
-(1859), public domain. Six claims, six attempts, seven proofs across all three
-rungs, three errors, two predictions, three insights and two practices.
-`examples/decision/` adds a subject, an attention log and an audit.
-
-1. Open `examples/book/claims/darwin/natural-selection.md`. It is `proven` at
-   `transfer`, the top rung, backed by `proofs/darwin/pr-ns-transfer.md`. Now read
-   `examples/book/attempts/darwin/att-ns.md`, the **failed** attempt dated
-   2026-08-12 that unlocked it. The ordering is the product: the attempt is dated
-   before the reading.
-2. `examples/book/claims/darwin/variation-passes-directly.md` is `retracted`. It
-   is still on disk. Read `errors/darwin/err-vpd.md`, which points at it. The claim
-   was wrong, the correction is recorded, and neither was deleted.
-3. `examples/decision/TODO.md` lists the five facts **only you can supply**. They
-   are missing on purpose, and the example says so rather than inventing them.
-
-Then run the deletion test yourself:
-
-```sh
-bin/g-lint --repo-root . --deletion-test
-```
-
-It copies each example vault, deletes every non-markdown file by construction,
-re-lints, and fails if the result is not clean.
-
-## 11. Anatomy of an offset
+### Layout
 
 ```text
 offset/
@@ -436,96 +385,48 @@ offset/
 ├── QWEN.md                @AGENTS.md
 ├── CITATIONS.md           the graded evidence ledger
 ├── README.md              this document
-├── rules/
-│   ├── 00-precedence.md       ranking, and the three rules about rules
-│   ├── 01-five-laws.md        the Five Laws, each with its lint rule
-│   ├── 02-two-disciplines.md  the Log and the Audit
-│   ├── 03-agent-contract.md   session protocol, Hint Ladder
-│   ├── 04-ontology.md         ten note types, every field
-│   ├── 05-scheduler.md        the ladder, and what it does not claim
-│   └── 06-voice.md            the training register
-├── bin/
-│   ├── lib.sh              the portable date core and frontmatter reader
-│   ├── g-lint              the twelve rules
-│   ├── g-new               scaffold a note or a subject
-│   ├── g-schedule          advance or retreat one ladder step
-│   └── g-today             regenerate today.md, pull-only
-├── templates/              one lint-clean template per note type
+├── rules/                 precedence, five laws, disciplines, contract,
+│                          ontology, scheduler, voice
+├── bin/                   lib.sh, g-lint, g-new, g-schedule, g-today
+├── templates/             one lint-clean template per note type
 ├── examples/
-│   ├── book/               Darwin, complete and lint-clean
-│   └── decision/           your own facts, deliberately absent
-└── docs/
-    ├── HOW-IT-WORKS.md
-    ├── PHILOSOPHY.md
-    ├── DESIGN-DECISIONS.md
-    ├── DELETION-TEST.md    a generated transcript, with its limits stated
-    └── RELEASE-CHECKLIST.md
+│   ├── book/              Darwin, complete and lint-clean
+│   └── decision/          your own facts, deliberately absent
+└── docs/                  philosophy, mechanics, decisions, deletion test
 ```
 
-`templates/` is the skeleton to copy. CI validates that every type is covered
-exactly once and that all ten are lint-clean.
+Ten note types, each with a lint-clean template: `subject`, `source`, `claim`,
+`proof`, `attempt`, `error`, `prediction`, `insight`, `practice`, `audit`. The
+schema stays neutral even though the agent talks in sets and reps, because a few
+hundred lines of POSIX `sh` has to parse every note in the vault, and a vault of
+`type: rep` files is a gym log.
 
-## 12. How a change ships
+### Adding a law
 
-```mermaid
-flowchart LR
-    edit["edit a note or a rule"] --> lint["g-lint names the rule that broke"]
-    lint -->|"fix it"| edit
-    lint -->|pass| tests["harness 35 assertions<br/>lint tests 24 cases"]
-    tests -->|pass| pr["pull request"]
-    pr --> ci["CI runs the same four commands"]
-    ci -->|pass| merge["merged"]
-```
+Three edits, and the third is the one people skip.
 
-The four commands, all of which must exit `0`:
+1. Write it in `rules/01-five-laws.md`, naming the lint rule that will enforce it.
+2. Implement it in `bin/g-lint`, **and route it in `lint_vault()`**. The dispatch
+   `case` is the single place a rule can be implemented and then silently never
+   called.
+3. Add an isolation test to `tests/lint-tests.sh` that breaks exactly one thing and
+   asserts only that rule fires.
 
-```sh
-sh tests/harness.sh                              # the portable date core
-sh tests/lint-tests.sh                           # every law, both directions
-bin/g-lint --templates templates                 # templates are schema-valid
-bin/g-lint --repo-root . --deletion-test         # repo and both example vaults
-```
+Step 2 is not hypothetical. `L4` sat unenforced for practices for the life of this
+project, and the test fixture was carrying the exact violation that hid it. A rule
+that is written but never dispatched is worse than no rule, because it looks like
+enforcement.
 
-`tests/lint-tests.sh` is the one that matters. For each of the twelve rules it
-builds a minimal fixture and asserts the violation trips **only** that rule. A
-half-linter that hides behind a neighbour is the failure mode this catches, and a
-coverage self-check fails the run if any rule is left untested.
+## Contribute
 
-<details>
-<summary>How a law is added</summary>
+Read [`CONTRIBUTING.md`](CONTRIBUTING.md) and
+[`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md). The short version: if you add a law,
+add its lint rule **and** a test that asserts only that rule fires. If you add a
+citation, add a graded entry to [`CITATIONS.md`](CITATIONS.md) first; `L12` tells
+you if you forgot. Security reports go through [`SECURITY.md`](SECURITY.md), not a
+public issue.
 
-```mermaid
-flowchart TD
-    law["write the law in rules/01-five-laws.md"] --> rule["implement its rule in bin/g-lint"]
-    rule --> dispatch["route the note type to it in lint_vault"]
-    dispatch --> test["add an isolation test to tests/lint-tests.sh"]
-    test -->|asserts only that rule fires| green["suite green"]
-    green --> cite["add or check any citation in CITATIONS.md"]
-```
-
-The third box is the one people skip. Implementing a rule and forgetting to
-dispatch it produces a linter that passes everything, which is worse than having
-no rule, because it looks like enforcement. That is not hypothetical: `L4` sat
-unenforced for practices for the life of this project, and the test fixture was
-carrying the violation that hid it.
-
-</details>
-
-## 13. Contribute
-
-Read [`CONTRIBUTING.md`](CONTRIBUTING.md). The short version: open
-`examples/book/` and read the notes. If you add a law, add its lint rule **and** a
-test that breaks exactly one thing and asserts only that rule fires. If you add a
-citation, add a graded entry to `CITATIONS.md` first; `L12` tells you if you
-forgot.
-
-```sh
-sh tests/harness.sh
-sh tests/lint-tests.sh
-bin/g-lint --repo-root . --deletion-test
-```
-
-## 14. The author
+## The author
 
 Built by [**Moayed Ellah**](https://github.com/moayedellah) (`moayedellah`).
 
@@ -537,10 +438,9 @@ enforced is a suggestion wearing a suit.
 
 The interesting part was not writing the rules. It was discovering that the test
 suite had been green for the wrong reason: an unbound variable was crashing the
-linter before the rule it was meant to catch could run. A system built to catch
-its own failures was failing silently, and only reading the code found it. That is
-written up in [`docs/DESIGN-DECISIONS.md`](docs/DESIGN-DECISIONS.md) and in the
-release notes.
+linter before the rule it was meant to catch could run. A system built to catch its
+own failures was failing silently, and only reading the code found it. That is
+written up in [`docs/DESIGN-DECISIONS.md`](docs/DESIGN-DECISIONS.md).
 
 ## License
 
