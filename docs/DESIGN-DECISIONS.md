@@ -261,18 +261,29 @@ Five come to 666px and sit on one row. The deletion pass asked what understandin
 disappears when the badge goes, and the answer was a number already printed in
 chapter 12.
 
-**Open.** `banner-dark.png` is a flat `#1E1E1E` rectangle: 2100x900, one distinct
-colour, 100% of pixels, no mark and no text. The dark `<source>` therefore points
-at the light banner rather than render a black box, and the render confirms the
-trade is the right way round: a light banner on a dark page is bright but legible
-and the brand still reads, where a dark rectangle on a dark page would erase it.
-It is still a white block on a black page, which is not the intended result.
+**Open, and narrowed to one thing.** There is no dark banner. The asset that
+exists is a flat `#1E1E1E` rectangle: 2100x900, one distinct colour, 100% of
+pixels, no mark and no text. It was committed, and then it was removed.
 
-Closing it needs the real dark asset from the owner, not a guess. Recolouring the
-light banner, or inverting the mark vector, would be inventing brand material, and
-which treatment is correct is an aesthetic decision with a wide blast radius
-across every surface that uses the mark. One attribute changes when it exists:
-`srcset` on the banner `<source>`.
+Committing it was the mistake. It was referenced by nothing, because the banner's
+`<source>` and `<img>` both pointed at the light file, so `<picture>` was doing
+nothing at all. What it did do was sit in `.github/assets/` looking like a
+finished dark asset, implying a capability the repository does not have. A blank
+image that asserts support it cannot provide is fabricated proof, and the cost of
+removing it is nothing, because a solid rectangle is reproducible from three lines
+of CSS by anyone who wants one. The banner is now a plain `<img>`, and the
+`<picture>` wrapper is restored in one edit when the real asset lands.
+
+The five badge pairs kept their `<picture>` blocks, because their dark variants
+are real: verified to differ from the light ones, with background `#1E1E1E`, label
+`#8F8F8F` and value `#88B7FB`. A wrapper that switches between two genuine
+variants is doing a job; one that switches between a file and itself is not.
+
+Recolouring the light banner, or inverting the mark vector, would be inventing
+brand material. Which treatment is correct is an aesthetic decision with a blast
+radius across every surface carrying the mark, so it is the owner's to make.
+Until then a light banner on a dark page is bright but legible, and the brand
+still reads.
 
 Verified by rendering the actual `<picture>` markup in headless Chromium at both
 colour schemes and reading the result, rather than trusting that the SVGs were

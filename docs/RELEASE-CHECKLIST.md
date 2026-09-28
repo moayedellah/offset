@@ -108,10 +108,12 @@ through `<picture>`. The palette was measured from the banner rather than
 chosen. Decision 16 in [`DESIGN-DECISIONS.md`](DESIGN-DECISIONS.md) records the
 reversal, the measured contrast figures, and the badge that was cut.
 
-**Open:** `banner-dark.png` is a flat `#1E1E1E` rectangle, one colour across
-2100x900, with no mark and no text. The dark `<source>` points at the light
-banner so nothing renders as a black box. One `srcset` attribute changes it when
-the real dark asset exists.
+**Open:** there is no dark banner. The asset that existed was a flat `#1E1E1E`
+rectangle, one colour across 2100x900, with no mark and no text. It was removed
+rather than shipped, because it was referenced by nothing and its only effect was
+to look like a finished dark asset. The banner is a plain `<img>`; the
+`<picture>` wrapper comes back in one edit when a real dark asset exists. The
+five badge pairs kept theirs, because their dark variants are real.
 
 ## 4. Translated `README`
 

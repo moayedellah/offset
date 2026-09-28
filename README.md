@@ -1,10 +1,7 @@
 # Offset
 
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/banner-light.png">
-    <img src=".github/assets/banner-light.png" alt="A system for discovering what survives after the book is closed." width="100%">
-  </picture>
+  <img src=".github/assets/banner-light.png" alt="A system for discovering what survives after the book is closed." width="100%">
 </p>
 
 **A system for discovering what survives after the book is closed.**
