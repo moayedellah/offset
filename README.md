@@ -15,7 +15,6 @@
   <picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/badges/dependencies-dark.svg"><img alt="dependencies: 0" src=".github/assets/badges/dependencies-light.svg" height="20"></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/badges/laws-enforced-dark.svg"><img alt="laws enforced: 12" src=".github/assets/badges/laws-enforced-light.svg" height="20"></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/badges/deletion-test-dark.svg"><img alt="deletion test: pass" src=".github/assets/badges/deletion-test-light.svg" height="20"></picture>
-  <picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/badges/assertions-dark.svg"><img alt="assertions: 59" src=".github/assets/badges/assertions-light.svg" height="20"></picture>
 </p>
 
 Every badge is a fact you can check inside this repository, and none of them is a

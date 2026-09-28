@@ -2,6 +2,6 @@
   <title>deletion test: pass</title>
   <rect x="0.5" y="0.5" width="154" height="19" rx="2" fill="#EFEFEF" stroke="#1E1E1E" stroke-opacity="0.14"/>
   <path d="M109 1 V19" stroke="#1E1E1E" stroke-opacity="0.14"/>
-  <text x="54.5" y="14" text-anchor="middle" font-family="ui-sans-serif,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="10" font-weight="500" letter-spacing="0.5" fill="#6B6B6B">DELETION TEST</text>
-  <text x="132.0" y="14" text-anchor="middle" font-family="ui-sans-serif,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="600" fill="#146CDD">pass</text>
+  <text x="54.5" y="14" text-anchor="middle" font-family="ui-sans-serif,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="10" font-weight="500" letter-spacing="0.25" fill="#6B6B6B">DELETION TEST</text>
+  <text x="132.0" y="14" text-anchor="middle" font-family="ui-sans-serif,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="600" fill="#0F59B8">pass</text>
 </svg>
