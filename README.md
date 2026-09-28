@@ -1,7 +1,25 @@
 # Offset
 
-**A learning system where the rules are lint rules.** Your notes are the artifact;
-nothing else is.
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/banner-light.png">
+    <img src=".github/assets/banner-light.png" alt="A system for discovering what survives after the book is closed." width="100%">
+  </picture>
+</p>
+
+**A system for discovering what survives after the book is closed.**
+
+<p align="center">
+  <picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/badges/license-dark.svg"><img alt="license: MIT" src=".github/assets/badges/license-light.svg" height="20"></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/badges/runtime-dark.svg"><img alt="runtime: none" src=".github/assets/badges/runtime-light.svg" height="20"></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/badges/dependencies-dark.svg"><img alt="dependencies: 0" src=".github/assets/badges/dependencies-light.svg" height="20"></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/badges/laws-enforced-dark.svg"><img alt="laws enforced: 12" src=".github/assets/badges/laws-enforced-light.svg" height="20"></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/badges/deletion-test-dark.svg"><img alt="deletion test: pass" src=".github/assets/badges/deletion-test-light.svg" height="20"></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/badges/assertions-dark.svg"><img alt="assertions: 59" src=".github/assets/badges/assertions-light.svg" height="20"></picture>
+</p>
+
+Every badge is a fact you can check inside this repository, and none of them is a
+download count.
 
 You do not read to have read books. You read to train the reading brain. The same
 law governs the vault and the operator, and its corollary is the whole product:
@@ -513,7 +531,7 @@ bin/g-lint --repo-root . --deletion-test
 
 ## 14. The author
 
-Built by [**0xRinx**](https://github.com/moayedellah).
+Built by [**Moayed Ellah**](https://github.com/moayedellah) (`moayedellah`).
 
 I would rather make a decision inevitable than impressive, so most of the work
 here is a question of what to refuse. This repository refuses a runtime, refuses

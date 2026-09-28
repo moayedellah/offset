@@ -209,24 +209,46 @@ Without these deferrals, one broken thing trips two rules, and the isolation tes
 suite cannot assert that a rule works on its own. A check that cannot be tested
 in isolation is a check you cannot trust.
 
-## 16. No images in the README, and the reference we did not copy
+## 16. Images in the README, after an earlier decision was reversed
 
-**Chosen.** The README is text and mermaid only. No banner, no badge graphics, no
-screenshot, no audio.
+**Chosen.** A brand banner in `.github/assets/`, plus six badges as hand-written
+SVGs in the brand's own colours, each with a light and a dark variant, wired
+through `<picture>` so the right one follows the reader's colour scheme.
 
-**Rejected.** Opening with a logo banner and a row of shields.io badges, which is
-the conventional shape for a repository README and which the reference layout we
-studied uses.
+**Reversed.** An earlier version of this file argued for a text-only README, on
+the grounds that `L8` strips every non-markdown file. **That reasoning was wrong,
+and the decision was made on it anyway.** `L8` is scoped to the vault's note
+directories (`sources`, `claims`, `attempts`, `proofs`, `predictions`, `errors`,
+`insights`, `practices`, `audits`, `self`) plus markdown at the vault root.
+`.github/assets/` is repo presentation, not vault state, so `L8` never applied.
+The Deletion Test has the same scope: it copies markdown out of the example
+vaults and does not look at repo assets.
 
-**Why.** Every one of those is a binary, and `L8` strips every non-markdown file
-under the Deletion Test. A repository whose argument is that durable state must
-outlive its software cannot open by asserting a dependency on an image host. The
-mermaid diagrams are a deliberate substitute: they are source, they diff, and
-they cannot rot out of sync with the code they describe.
+A rule was stretched to cover a case it was never written for, and the stretch
+went unnoticed because the rule is enforced by a machine that had nothing to
+say. Worth recording: the enforcement was working, and the reasoning was still
+wrong.
 
-**Cost, accepted.** The README is less scannable at a glance than a banner-and-badges
-one, and it looks less like a product launch. The diagrams carry the visual load
-instead.
+**Why it is safe.** The Deletion Test's claim is about *durable state*: if the
+tools vanish, your knowledge survives as markdown you can read with `cat`. A
+banner is not state. It carries no information that is not also in the text
+beneath it, and deleting the whole `.github/assets/` directory costs the
+repository nothing but its appearance.
+
+**The palette was measured, not chosen from a template.** `banner-light.png` has
+37 distinct colours; the dominant ones are paper `#EFEFEF`, ink `#1E1E1E`, and a
+blue ramp running `#0C356C`, `#0A4794`, `#0F59B8`, `#146CDD`, `#2B83FA`,
+`#5298FD`, `#88B7FB`. The badges use `#146CDD` for values on light and `#88B7FB`
+on dark, with 2px corners to match the hard-edged mark in the banner rather than
+the rounded shields.io silhouette.
+
+**No badge asserts anything unmeasured.** There is no download count, no star
+count, no coverage percentage, no "trusted by". Each of the six states a fact
+checkable in the tree: `MIT`, `none`, `0`, `12`, `pass`, `59`.
+
+**Open.** `banner-dark.png` is a flat `#1E1E1E` rectangle with no mark and no
+text, so the dark `<source>` currently points at the light banner rather than
+render a black box. When the real dark asset exists it is a one-attribute change.
 
 ## 17. The author section claims only what the repository can check
 

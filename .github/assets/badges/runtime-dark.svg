@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="113" height="20" viewBox="0 0 113 20" role="img" aria-label="runtime: none">
+  <title>runtime: none</title>
+  <rect x="0.5" y="0.5" width="112" height="19" rx="2" fill="#1E1E1E" stroke="#EFEFEF" stroke-opacity="0.16"/>
+  <path d="M67 1 V19" stroke="#EFEFEF" stroke-opacity="0.16"/>
+  <text x="33.5" y="14" text-anchor="middle" font-family="ui-sans-serif,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="10" font-weight="500" letter-spacing="0.5" fill="#8F8F8F">RUNTIME</text>
+  <text x="90.0" y="14" text-anchor="middle" font-family="ui-sans-serif,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="600" fill="#88B7FB">none</text>
+</svg>
