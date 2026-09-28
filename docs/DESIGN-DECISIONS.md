@@ -291,6 +291,30 @@ inventing brand material, and which treatment is right has a blast radius across
 every surface carrying the mark. The owner's asset was the only correct input,
 and it took one attribute to wire up.
 
+**The banner was cropped, and that is a claim worth proving.** Rendering the
+README in a browser rather than reading its source showed the masthead eating
+roughly 400px before the first word. Measuring the asset explained it: the
+mark and tagline occupy rows 325 to 768 of a 900px canvas, so **51% of the file
+was empty margin**, 325px above the content and 131px below.
+
+CSS cannot fix this. GitHub strips `<style>` from rendered markdown, so
+`object-fit: cover` and a fixed-height frame are both unavailable, and an `img`
+with a smaller `height` scales the whole image down rather than cropping it.
+The dead space would have shipped.
+
+Trimming uniform margin is not a design decision, so it was done mechanically
+and then verified rather than asserted. Both banners had identical content boxes,
+417x444 at `+841+325`. The crop takes rows 301 to 792, leaving 24px above and
+below, and the result is 2100x492, aspect 4.27:1 against the original 2.33:1.
+Two checks were run on the output: the content region before and after the crop
+differs by **zero pixels** (`compare -metric AE` returned 0 for both variants,
+of 931,800), and each removed band contains exactly one colour, so nothing was
+clipped. At a 950px content column the masthead loses **184px** of height.
+
+The owner's source files are untouched on disk; the repository carries the
+trimmed variants under the same names, and the `?v=` query on each image is the
+git blob hash, so the cache-busts itself change whenever the artwork does.
+
 Verified by rendering the actual `<picture>` markup in headless Chromium at both
 colour schemes and reading the result, rather than trusting that the files were
 correct because they were dropped in by a script. The first version failed that
