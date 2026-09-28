@@ -1,10 +1,10 @@
 # Release checklist
 
 This repository is **published, passing, and reviewed.** Everything actionable is
-closed. Two items remain and both are yours to answer, not debts: whether to name
-a language for a translated `README` (item 4), and whether to put your own facts
-into `examples/decision` (item 5). The review gate in item 1 is closed, commit
-attribution in 3b is closed, and one brand asset is outstanding in 3c.
+closed, including the brand assets in 3c. Two items remain and both are yours to
+answer, not debts: whether to name a language for a translated `README` (item 4),
+and whether to put your own facts into `examples/decision` (item 5). The review
+gate in item 1 is closed and commit attribution in 3b is closed.
 
 Run this list top to bottom. It is short on purpose.
 
@@ -101,19 +101,19 @@ a commit reference in this repository that points at nothing.
 Verified from a fresh public clone, not only locally: 25 commits, one author, no
 placeholder.
 
-## 3c. Brand assets — **DONE, with one item open**
+## 3c. Brand assets — **DONE**
 
-`banner-light.png` and a five-badge SVG set are in `.github/assets/`, wired
-through `<picture>`. The palette was measured from the banner rather than
-chosen. Decision 16 in [`DESIGN-DECISIONS.md`](DESIGN-DECISIONS.md) records the
-reversal, the measured contrast figures, and the badge that was cut.
+`banner-light.png`, `banner-dark.png` and a five-badge SVG set are in
+`.github/assets/`, all wired through `<picture>` so each reader gets the variant
+matching their colour scheme. The palette was measured from the banner rather
+than chosen. Decision 16 in [`DESIGN-DECISIONS.md`](DESIGN-DECISIONS.md) records
+the reversal, the measured contrast figures, the badge that was cut, and the blank
+dark asset that was removed rather than shipped.
 
-**Open:** there is no dark banner. The asset that existed was a flat `#1E1E1E`
-rectangle, one colour across 2100x900, with no mark and no text. It was removed
-rather than shipped, because it was referenced by nothing and its only effect was
-to look like a finished dark asset. The banner is a plain `<img>`; the
-`<picture>` wrapper comes back in one edit when a real dark asset exists. The
-five badge pairs kept theirs, because their dark variants are real.
+Both banner variants measure 14.5:1 for the mark and tagline against their own
+ground, so neither depends on the reader's theme to be legible. The wrapper was
+verified by rendering the real markup in headless Chromium under both schemes and
+sampling the output, not by reading the HTML and assuming.
 
 ## 4. Translated `README`
 
