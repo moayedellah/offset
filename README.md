@@ -1,5 +1,3 @@
-<h1 align="center">Offset</h1>
-
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset=".github/assets/banner-dark.png?v=db024032">
